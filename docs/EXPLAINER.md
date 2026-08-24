@@ -148,7 +148,7 @@ mirrors the patient twice. Two flips fix it:
 
 This was caught during verification by reading the anatomy: the spleen (a left-side
 organ) rendered on the image's left before the x flip — anatomically impossible in
-radiological display. The yellow **R/L/A/P** labels around the viewport make the
+radiological display. The **R/L/A/P** labels around the viewport make the
 convention explicit, exactly like Slicer's viewport annotations. The hover readout
 undoes both flips so reported (x, y, z) are true voxel indices.
 

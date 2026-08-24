@@ -4,148 +4,136 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Browser CT Viewer</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230f1115'/%3E%3Ccircle cx='8' cy='8' r='5' fill='none' stroke='%23F34A33' stroke-width='1.5'/%3E%3Cpath d='M8 1v14M1 8h14' stroke='%235b9dd9' stroke-width='1'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23ffffff'/%3E%3Crect x='1' y='1' width='14' height='14' fill='none' stroke='%23111111' stroke-width='2'/%3E%3Cpath d='M8 3v10M3 8h10' stroke='%23111111' stroke-width='1.5'/%3E%3C/svg%3E">
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #171a21;
-    --panel-edge: #262b36;
-    --text: #d7dce2;
-    --text-dim: #8b93a1;
-    --accent: #5b9dd9;
-    --ok: #6fbf73;
-    --err: #e07a7a;
-    /* 3D Slicer's view colors */
+    --ink: #111111;
+    --paper: #ffffff;
+    --hair: #e4e4e4;
+    --dim: #6b6b6b;
+    --ok: #1a7f3c;
+    --err: #b00020;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    /* 3D Slicer's view colors — used only as functional plane coding */
     --slicer-red: #F34A33;
     --slicer-yellow: #EDD54C;
     --slicer-green: #6EB04B;
     --slicer-blue: #7483E9;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; }
+  [hidden] { display: none !important; }
   body {
-    background: var(--bg);
-    color: var(--text);
-    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
   }
+
+  /* ---- header ---- */
   header {
-    padding: 14px 28px;
-    border-bottom: 1px solid var(--panel-edge);
+    height: 48px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--ink);
     display: flex;
     align-items: center;
     gap: 14px;
-    flex-wrap: wrap;
+    flex-shrink: 0;
   }
-  header h1 { font-size: 19px; font-weight: 650; letter-spacing: 0.2px; }
-  header .sub { color: var(--text-dim); font-size: 13px; }
+  header h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.3px; }
   .chip {
-    font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: var(--accent);
-    border: 1px solid #2c3c52;
-    background: #16202e;
-    border-radius: 999px;
-    padding: 5px 12px;
+    font: 11px/1 var(--mono);
+    border: 1px solid var(--ink);
+    padding: 4px 9px;
   }
   #header-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
-  main { flex: 1; padding: 22px 28px; max-width: 1500px; width: 100%; margin: 0 auto; }
+
+  main { flex: 1; padding: 20px; max-width: 1560px; width: 100%; margin: 0 auto; }
+
+  /* ---- controls ---- */
+  button {
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: 6px 14px;
+    font: 500 13px/1.4 inherit;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  button:hover { background: var(--ink); color: var(--paper); }
+  button.primary { background: var(--ink); color: var(--paper); }
+  button.primary:hover { background: #333; border-color: #333; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  input[type=checkbox] { accent-color: var(--ink); }
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    height: 15px;
+  }
+  input[type=range]::-webkit-slider-runnable-track { height: 2px; background: #c9c9c9; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 9px;
+    height: 15px;
+    background: var(--ink);
+    margin-top: -6.5px;
+  }
+  input[type=range]::-moz-range-track { height: 2px; background: #c9c9c9; }
+  input[type=range]::-moz-range-thumb {
+    width: 9px;
+    height: 15px;
+    background: var(--ink);
+    border: none;
+    border-radius: 0;
+  }
 
   /* ---- loader ---- */
   #dropzone {
-    border: 2px dashed #3a4150;
-    border-radius: 12px;
-    padding: 52px 24px;
+    border: 1px dashed var(--ink);
+    padding: 72px 24px;
     text-align: center;
-    color: var(--text-dim);
-    transition: border-color 0.15s, background 0.15s;
   }
-  #dropzone.drag { border-color: var(--accent); background: #171d28; color: var(--text); }
-  #dropzone .big { font-size: 17px; color: var(--text); margin-bottom: 6px; }
-  #dropzone .buttons { margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-  button {
-    background: #232a37;
-    color: var(--text);
-    border: 1px solid #333c4d;
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.1s, border-color 0.1s;
-  }
-  button:hover { background: #2b3444; border-color: var(--accent); }
-  button.primary { background: #24405e; border-color: #35608e; }
-  button.primary:hover { background: #2b4d72; }
-  button.small { padding: 5px 12px; font-size: 12.5px; border-radius: 6px; }
-  .progress {
-    height: 6px;
-    margin-top: 18px;
-    background: #1c2129;
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .progress div {
-    height: 100%;
-    width: 0%;
-    background: var(--accent);
-    border-radius: 3px;
-    transition: width 0.12s linear;
-  }
+  #dropzone.drag { background: #f4f4f4; }
+  #dropzone .big { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  #dropzone .sub { color: var(--dim); font-size: 13px; }
+  #dropzone .buttons { margin-top: 22px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .progress { height: 3px; margin-top: 20px; background: #ededed; }
+  .progress div { height: 100%; width: 0%; background: var(--ink); transition: width 0.12s linear; }
   #log {
     margin-top: 14px;
-    font: 12.5px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: var(--text-dim);
+    font: 12px/1.8 var(--mono);
+    color: var(--dim);
     white-space: pre-wrap;
   }
   #log .ok { color: var(--ok); }
   #log .err { color: var(--err); }
 
-  /* ---- cards / controls ---- */
-  .card {
-    background: var(--panel);
-    border: 1px solid var(--panel-edge);
-    border-radius: 10px;
-    padding: 14px 16px;
-  }
-  .card h2 { font-size: 13px; font-weight: 650; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
-  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; }
-  .note { color: var(--text-dim); font-size: 12.5px; }
-  .ctl-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 13px; }
-  .ctl-row label { color: var(--text-dim); width: 62px; flex-shrink: 0; }
-  .ctl-row input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
-  .ctl-row .val { width: 52px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
-  .presets { display: flex; gap: 8px; margin-top: 10px; }
-  .presets button { padding: 4px 10px; font-size: 12.5px; border-radius: 6px; }
-  .presets button.active { border-color: var(--accent); color: var(--accent); }
-  .legend-row { display: flex; align-items: center; gap: 9px; padding: 3px 0; font-size: 13.5px; cursor: pointer; }
-  .legend-row input { accent-color: var(--accent); }
-  .legend-row .count { margin-left: auto; color: var(--text-dim); font-size: 12px; font-variant-numeric: tabular-nums; }
-  .legend-tools { display: flex; gap: 12px; margin: 8px 0; font-size: 12.5px; }
-  .legend-tools a { color: var(--accent); cursor: pointer; text-decoration: none; }
-  .meta { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
-  label.inline { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; margin-top: 8px; }
-  label.inline input { accent-color: var(--accent); }
-
   /* ---- 2x2 viewer ---- */
   #viewer { display: flex; gap: 16px; align-items: flex-start; }
   #view-col { flex: 1; min-width: 0; }
   #views { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .cell {
-    background: #000;
-    border: 1px solid var(--panel-edge);
-    border-top: 2px solid var(--vc, var(--panel-edge));
-    border-radius: 10px;
-    overflow: hidden;
-  }
+  .cell { border: 1px solid var(--ink); background: #000; }
   .cell-head {
+    height: 32px;
     display: flex;
-    justify-content: space-between;
-    padding: 5px 12px;
-    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: var(--text-dim);
-    background: #12151b;
+    align-items: center;
+    gap: 9px;
+    padding: 0 10px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--ink);
   }
-  .cell-head .t { color: var(--vc); font-weight: 700; }
+  .plane-tag { width: 10px; height: 10px; background: var(--vc); flex-shrink: 0; }
+  .cell-head .t { font: 600 12.5px/1 inherit; color: var(--ink); }
+  .cell-head input[type=range] { flex: 1; min-width: 0; height: 12px; }
+  .cell-head .idx {
+    font: 11px/1 var(--mono);
+    color: var(--dim);
+    margin-left: auto;
+    white-space: nowrap;
+  }
   .cell-body {
     position: relative;
     height: 34vh;
@@ -159,38 +147,54 @@
   #canvas-3d.dragging { cursor: grabbing; }
   .orient {
     position: absolute;
-    font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: #e8b64c;
+    font: 600 11px/1 var(--mono);
+    color: #8a8f98;
     pointer-events: none;
-    text-shadow: 0 0 4px #000;
   }
   .or-left  { left: 10px; top: 50%; transform: translateY(-50%); }
   .or-right { right: 10px; top: 50%; transform: translateY(-50%); }
   .or-top   { top: 8px; left: 50%; transform: translateX(-50%); }
   .or-bot   { bottom: 8px; left: 50%; transform: translateX(-50%); }
-  .hint {
-    position: absolute;
-    right: 10px;
-    bottom: 8px;
-    font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: #3f4756;
-    pointer-events: none;
-  }
   #readout {
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    margin-top: 10px;
-    padding: 7px 14px;
-    background: var(--panel);
-    border: 1px solid var(--panel-edge);
-    border-radius: 8px;
-    font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: var(--text-dim);
-    min-height: 34px;
+    margin-top: 12px;
+    padding: 8px 12px;
+    border: 1px solid var(--ink);
+    font: 12px/1.5 var(--mono);
+    color: var(--dim);
+    min-height: 35px;
   }
-  #readout .pos { color: var(--text); }
-  #sidebar { width: 296px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+  #readout .pos { color: var(--ink); }
+
+  /* ---- sidebar ---- */
+  #sidebar { width: 272px; flex-shrink: 0; }
+  .sec { padding: 0 0 16px; margin-bottom: 16px; border-bottom: 1px solid var(--hair); }
+  .sec:last-child { border-bottom: none; }
+  .sec h2 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    margin-bottom: 10px;
+  }
+  .ctl-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 13px; }
+  .ctl-row label { color: var(--dim); width: 58px; flex-shrink: 0; }
+  .ctl-row input[type=range] { flex: 1; min-width: 0; }
+  .ctl-row .val { width: 44px; text-align: right; font: 12px/1 var(--mono); flex-shrink: 0; }
+  .presets { display: flex; gap: 6px; margin-top: 12px; }
+  .presets button { padding: 4px 10px; font-size: 12px; }
+  .presets button.active { background: var(--ink); color: var(--paper); }
+  .legend-row { display: flex; align-items: center; gap: 9px; padding: 3.5px 0; font-size: 13px; cursor: pointer; }
+  .legend-row .count { margin-left: auto; color: var(--dim); font: 11px/1 var(--mono); }
+  .swatch { display: inline-block; width: 12px; height: 12px; flex-shrink: 0; }
+  .legend-tools { display: flex; gap: 14px; margin: 10px 0 4px; font-size: 12px; }
+  .legend-tools a { color: var(--ink); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .meta { font: 11.5px/1.8 var(--mono); color: var(--dim); }
+  label.inline { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .help { margin-top: 10px; font-size: 11.5px; line-height: 1.6; color: var(--dim); }
+
   @media (max-width: 1000px) {
     #viewer { flex-direction: column; }
     #sidebar { width: 100%; }
@@ -201,22 +205,21 @@
 <body>
 
 <header>
-  <h1>Browser CT Viewer</h1>
-  <span class="sub">CT + per-voxel segmentation in the browser &middot; no install, no server, no dependencies</span>
+  <h1>CT Viewer</h1>
   <div id="header-right">
     <span class="chip" id="case-chip" hidden></span>
-    <button class="small" id="change-case" hidden>Load another case</button>
+    <button id="change-case" hidden>Open case</button>
   </div>
 </header>
 
 <main>
   <section id="loader">
     <div id="dropzone">
-      <div class="big">Drop a CT scan and its segmentation masks here</div>
-      <div>NIfTI files (<code>.nii</code> / <code>.nii.gz</code>) &mdash; individual files or a whole folder</div>
+      <div class="big">Drop a CT scan and its segmentation masks</div>
+      <div class="sub">NIfTI (<code>.nii</code> / <code>.nii.gz</code>) &middot; files or a folder</div>
       <div class="buttons">
         <button id="pick">Choose files&hellip;</button>
-        <button id="sample" class="primary" hidden>Load sample case (BDMAP_00000338)</button>
+        <button id="sample" class="primary" hidden>Load sample case</button>
       </div>
       <input type="file" id="file-input" multiple accept=".nii,.gz" hidden>
     </div>
@@ -228,7 +231,11 @@
     <div id="view-col">
       <div id="views">
         <div class="cell" style="--vc: var(--slicer-red)">
-          <div class="cell-head"><span class="t">Axial</span><span id="idx-axial"></span></div>
+          <div class="cell-head">
+            <span class="plane-tag"></span><span class="t">Axial</span>
+            <input type="range" id="slider-axial" min="0" value="0" step="1">
+            <span class="idx" id="idx-axial"></span>
+          </div>
           <div class="cell-body">
             <canvas class="slice" id="canvas-axial"></canvas>
             <span class="orient or-left">R</span><span class="orient or-right">L</span>
@@ -236,14 +243,20 @@
           </div>
         </div>
         <div class="cell" style="--vc: var(--slicer-blue)">
-          <div class="cell-head"><span class="t">3D</span><span id="idx-3d"></span></div>
+          <div class="cell-head">
+            <span class="plane-tag"></span><span class="t">3D</span>
+            <span class="idx" id="idx-3d"></span>
+          </div>
           <div class="cell-body">
             <canvas id="canvas-3d"></canvas>
-            <span class="hint">drag rotate &middot; scroll zoom</span>
           </div>
         </div>
         <div class="cell" style="--vc: var(--slicer-yellow)">
-          <div class="cell-head"><span class="t">Sagittal</span><span id="idx-sagittal"></span></div>
+          <div class="cell-head">
+            <span class="plane-tag"></span><span class="t">Sagittal</span>
+            <input type="range" id="slider-sagittal" min="0" value="0" step="1">
+            <span class="idx" id="idx-sagittal"></span>
+          </div>
           <div class="cell-body">
             <canvas class="slice" id="canvas-sagittal"></canvas>
             <span class="orient or-left">A</span><span class="orient or-right">P</span>
@@ -251,7 +264,11 @@
           </div>
         </div>
         <div class="cell" style="--vc: var(--slicer-green)">
-          <div class="cell-head"><span class="t">Coronal</span><span id="idx-coronal"></span></div>
+          <div class="cell-head">
+            <span class="plane-tag"></span><span class="t">Coronal</span>
+            <input type="range" id="slider-coronal" min="0" value="0" step="1">
+            <span class="idx" id="idx-coronal"></span>
+          </div>
           <div class="cell-body">
             <canvas class="slice" id="canvas-coronal"></canvas>
             <span class="orient or-left">R</span><span class="orient or-right">L</span>
@@ -263,29 +280,7 @@
     </div>
 
     <aside id="sidebar">
-      <div class="card">
-        <h2>Slices</h2>
-        <div class="ctl-row">
-          <label for="slider-axial">Axial</label>
-          <input type="range" id="slider-axial" min="0" value="0" step="1">
-          <span class="val" id="val-axial"></span>
-        </div>
-        <div class="ctl-row">
-          <label for="slider-sagittal">Sagittal</label>
-          <input type="range" id="slider-sagittal" min="0" value="0" step="1">
-          <span class="val" id="val-sagittal"></span>
-        </div>
-        <div class="ctl-row">
-          <label for="slider-coronal">Coronal</label>
-          <input type="range" id="slider-coronal" min="0" value="0" step="1">
-          <span class="val" id="val-coronal"></span>
-        </div>
-        <label class="inline"><input type="checkbox" id="crosshair-toggle" checked>
-          Linked crosshairs</label>
-        <div class="note" style="margin-top:6px">Click or drag in any view to move the
-        crosshair. Scroll to scrub slices.</div>
-      </div>
-      <div class="card">
+      <div class="sec">
         <h2>Window / Level</h2>
         <div class="ctl-row">
           <label for="win-slider">Window</label>
@@ -299,8 +294,8 @@
         </div>
         <div class="presets" id="presets"></div>
       </div>
-      <div class="card">
-        <h2>Segmentation overlays</h2>
+      <div class="sec">
+        <h2>Segmentation</h2>
         <div class="ctl-row" style="margin-top:0">
           <label for="alpha-slider">Opacity</label>
           <input type="range" id="alpha-slider" min="0" max="100" value="45" step="1">
@@ -309,9 +304,16 @@
         <div class="legend-tools"><a id="all-on">all</a><a id="all-off">none</a></div>
         <div id="legend"></div>
       </div>
-      <div class="card">
-        <h2>Volume</h2>
+      <div class="sec">
+        <h2>Study</h2>
         <div class="meta" id="volume-meta"></div>
+      </div>
+      <div class="sec">
+        <h2>View</h2>
+        <label class="inline"><input type="checkbox" id="crosshair-toggle" checked>
+          Linked crosshairs</label>
+        <div class="help">Click or drag in a view to move the crosshair.
+        Scroll to change slice. Drag the 3D view to rotate, scroll to zoom.</div>
       </div>
     </aside>
   </section>
@@ -439,9 +441,8 @@ async function ingest(entries, caseName) {
   const ct = parseNifti(await maybeGunzip(ctEntry.buffer), ctEntry.name);
   const [nx, ny, nz] = ct.dims;
   const nvox = nx * ny * nz;
-  log(`<span class="ok">✓</span> CT: ${nx}×${ny}×${nz} ${ct.datatypeLabel}, ` +
-      `spacing ${ct.spacing.map(s => s.toFixed(3)).join(' × ')} mm, ` +
-      `rescale HU = raw × ${ct.slope.toPrecision(6)} + ${ct.inter.toPrecision(6)}`);
+  log(`<span class="ok">✓</span> CT ${nx}×${ny}×${nz} ${ct.datatypeLabel}, ` +
+      `${ct.spacing.map(s => s.toFixed(3)).join(' × ')} mm`);
 
   // Merge every mask into one label volume: 1 byte per voxel total,
   // instead of one full volume per organ.
@@ -471,7 +472,7 @@ async function ingest(entries, caseName) {
     log(`<span class="ok">✓</span> ${name}: ${voxels.toLocaleString()} voxels`);
   }
 
-  // Raw min/max in one pass — used for the report and windowing sanity.
+  // Raw min/max in one pass — used for the study panel and windowing sanity.
   let min = Infinity, max = -Infinity;
   const cd = ct.data;
   for (let i = 0; i < nvox; i++) {
@@ -484,10 +485,9 @@ async function ingest(entries, caseName) {
   app.labels = labels;
   app.structures = structures;
   app.huRange = [min * ct.slope + ct.inter, max * ct.slope + ct.inter];
-  app.caseName = caseName || 'custom case';
+  app.caseName = caseName || 'case';
 
   buildSurfaceCloud();
-  log(`<span class="ok">✓</span> 3D surface: ${app.cloud.count.toLocaleString()} points`);
   log(`Done in ${((performance.now() - t0) / 1000).toFixed(2)} s.`);
   initViewer();
 }
@@ -799,9 +799,9 @@ function updateHuds() {
   $('idx-axial').textContent = `S ${mm(z, nz, sz)} mm · ${z + 1}/${nz}`;
   $('idx-sagittal').textContent = `R ${mm(x, nx, sx)} mm · ${x + 1}/${nx}`;
   $('idx-coronal').textContent = `A ${mm(y, ny, sy)} mm · ${y + 1}/${ny}`;
-  $('slider-axial').value = z;    $('val-axial').textContent = `${z + 1}/${nz}`;
-  $('slider-sagittal').value = x; $('val-sagittal').textContent = `${x + 1}/${nx}`;
-  $('slider-coronal').value = y;  $('val-coronal').textContent = `${y + 1}/${ny}`;
+  $('slider-axial').value = z;
+  $('slider-sagittal').value = x;
+  $('slider-coronal').value = y;
   $('readout-wl').textContent = `W ${view.window} · L ${view.level}`;
 }
 
@@ -841,7 +841,7 @@ function buildLegend() {
     row.className = 'legend-row';
     row.innerHTML = `<input type="checkbox" ${s.visible ? 'checked' : ''}>
       <span class="swatch" style="background: rgb(${s.color})"></span>
-      <span>${s.name}</span><span class="count">${s.voxels.toLocaleString()} vx</span>`;
+      <span>${s.name}</span><span class="count">${s.voxels.toLocaleString()}</span>`;
     row.querySelector('input').addEventListener('change', e => {
       s.visible = e.target.checked;
       lutVis[s.labelValue] = s.visible ? 1 : 0;
@@ -866,7 +866,7 @@ function setAllVisible(on) {
  * Per frame: rotate (turntable yaw + pitch), orthographic project, and
  * splat into an ImageData with a Float32 z-buffer for occlusion. Shading
  * is a headlight lambert — the light direction is rotated instead of the
- * 300k normals, so the per-point cost stays at one dot product.
+ * 180k normals, so the per-point cost stays at one dot product.
  * =================================================================== */
 
 const r3 = { yaw: -0.55, pitch: -0.38, zoom: 1, canvasSize: 560 };
@@ -1037,7 +1037,7 @@ function bindUI() {
     render3D();
   }, { passive: false });
 
-  // sidebar
+  // per-plane slice sliders live in the viewport headers
   $('slider-axial').addEventListener('input',
     e => setCursor(view.cursor.x, view.cursor.y, +e.target.value));
   $('slider-sagittal').addEventListener('input',
@@ -1113,8 +1113,7 @@ function initViewer() {
     `${nx} × ${ny} × ${nz} voxels<br>` +
     `${sx.toFixed(3)} × ${sy.toFixed(3)} × ${sz.toFixed(3)} mm/voxel<br>` +
     `HU ${huRange[0].toFixed(0)} to ${huRange[1].toFixed(0)} · ` +
-    `${structures.length} structures<br>` +
-    `Colors: Slicer GenericAnatomyColors`;
+    `${structures.length} structures`;
 
   $('slider-axial').max = nz - 1;
   $('slider-sagittal').max = nx - 1;
