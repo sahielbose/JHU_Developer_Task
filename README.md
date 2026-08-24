@@ -2,7 +2,8 @@
 
 A web-based CT scan viewer with per-voxel segmentation overlays, in the spirit of
 [3D Slicer](https://www.slicer.org/) but running entirely in the browser. No install,
-no server, no GPU — a single self-contained `index.html` with zero dependencies.
+no server, no GPU — three plain files (HTML, CSS, ~800 lines of vanilla JavaScript)
+with zero dependencies and no build step.
 
 Built as the demo for **BodyMaps Developer Project 1** (Johns Hopkins University /
 Johns Hopkins Medicine).
@@ -49,7 +50,8 @@ publicly hosted BodyMaps sample `BDMAP_00000338`:
 
 ## Architecture
 
-One `index.html`, vanilla HTML/CSS/JS — no frameworks, no build step, no external
+`index.html` (markup) + `styles.css` + `app.js` (~800 lines — the NIfTI parser,
+rendering engine, and 3D renderer). No frameworks, no build step, no external
 requests. See [docs/EXPLAINER.md](docs/EXPLAINER.md) for a full walkthrough of the
 pipeline (gunzip → NIfTI header parse → HU rescale → label-volume merge → canvas
 slice rendering → z-buffered 3D splatting) and how each stage was verified.

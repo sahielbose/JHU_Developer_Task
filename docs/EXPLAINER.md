@@ -1,6 +1,6 @@
 # EXPLAINER — how this viewer works
 
-This document is the study companion to `index.html`. One section per build phase;
+This document is the study companion to the code (`app.js`). One section per build phase;
 each is written to be read top-to-bottom after that phase lands. The goal: you can
 explain every design decision in this repo without looking at the code.
 
