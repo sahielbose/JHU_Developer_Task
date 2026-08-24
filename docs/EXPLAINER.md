@@ -10,7 +10,7 @@ explain every design decision in this repo without looking at the code.
 2. **[Phase 2 — Axial viewer](#phase-2--axial-viewer)** *(done)*
 3. **[Phase 3 — Three planes](#phase-3--three-planes)** *(done)*
 4. **[Phase 4 — 3D view + polish](#phase-4--3d-view--polish)** *(done)*
-5. **Mock Q&A** *(written last)* — questions a reviewer might ask, with the answers
+5. **[Mock Q&A](#mock-qa)** — questions a reviewer might ask, with the answers
    you should be able to give cold.
 
 ---
@@ -295,3 +295,112 @@ data, not eyeballs.
 **Q you should be able to answer after this section:** Why does a z-buffer remove
 the need to sort points? Why is rotating the light equivalent to rotating every
 normal? Why do the splats need to grow with zoom?
+
+---
+
+## Mock Q&A
+
+The questions a technical reviewer plausibly asks about this demo, with the shape
+of a good answer. Don't memorize the words — own the reasoning.
+
+**1. Walk me through what happens between dropping the files and seeing an image.**
+Gunzip each file with the browser's native `DecompressionStream`. Parse the fixed
+348-byte NIfTI-1 header with a `DataView` — dimensions, datatype, voxel spacing,
+and the HU rescale live at fixed byte offsets. The rest of the file becomes a typed
+array view (no copy). The nine masks fold into one uint8 label volume. Then each
+viewport walks its slice of the CT array, maps raw values through window/level, and
+writes RGBA bytes into a canvas `ImageData`.
+
+**2. What are Hounsfield Units, and why does your code multiply by 0.030518?**
+HU is the physical scale of X-ray attenuation — water 0, air −1000, soft organs
+40–80, bone 400+. The file stores int16 plus an affine rescale in the header
+(`scl_slope`/`scl_inter`); this dataset maps the full int16 range onto exactly
+−1000..+1000 HU (slope = 2000/65535). Skip the rescale and all windowing math is
+meaningless.
+
+**3. Why default to window 400 / level 40?**
+That's the standard abdomen window: gray levels span −160..240 HU, which is where
+abdominal soft-tissue contrast lives. Bone saturates white, air clips black —
+intended behavior, radiologists switch presets when they care about those.
+
+**4. Your voxels aren't cubes. Where does that matter?**
+Everywhere physical space matters: coronal/sagittal views need a ~3× vertical
+stretch (0.816 mm in-plane vs 2.5 mm between slices) or the anatomy is squashed;
+organ volumes in mL use the voxel's mm³; 3D point positions are computed in mm;
+and the 3D splat size must cover the projected inter-slice gap.
+
+**5. Why merge nine masks into one label volume?**
+Memory (12.4 MB instead of ~112 MB) and speed (one lookup per rendered pixel
+instead of nine). The tradeoff: a voxel can only hold one label — 1,831 voxels
+(0.1%) sat in two masks at organ boundaries, resolved deterministically. The
+per-organ counts shown in the UI are computed per mask before merging, so they
+stay faithful to the source files.
+
+**6. Why is this fast without a GPU? Why canvas instead of WebGL?**
+An axial slice is 175k pixels and the per-pixel work is one multiply-add and a
+clamp — about a millisecond. The full four-view render including 3D is ~7 ms.
+At this data scale WebGL adds complexity without visible benefit. The honest
+answer continues: for full-resolution volume ray-casting or 4K viewports I'd move
+to WebGL/WebGPU, and the mm-space geometry is already structured for that port.
+
+**7. How do the linked crosshairs work?**
+One shared cursor in voxel space, three projections of it. Each view shows the
+slice at its own axis of the cursor and draws the other two coordinates as lines.
+A click inverts the view's display mapping (CSS scale + axis flips) back to voxel
+coordinates and updates the shared cursor. No cross-view event system — shared
+state is the whole mechanism.
+
+**8. How does the 3D view work with no graphics library?**
+Extract surface voxels (any 6-neighbor differs) — 183k points, each with a mm
+position, label, and an outward normal from its empty-neighbor directions. Per
+frame: two 2D rotations, orthographic projection, and z-buffered splatting into
+ImageData — O(n), no sorting, because the depth test makes draw order irrelevant.
+Lambert shading via a headlight, rotating the light once instead of 183k normals.
+
+**9. Why all the axis flips?**
+Three coordinate systems disagree: NIfTI axes point Right/Anterior/Superior, the
+canvas y-axis points down, and radiology displays axial slices viewed from the
+feet (patient right on image left — Slicer does the same). Each view flips what's
+needed. The bug this catches: my first render put the spleen on the image's left —
+anatomically impossible in radiological display, since the spleen is a left-side
+organ. Reading the anatomy caught the mirror.
+
+**10. How did you verify correctness?**
+Three independent lines: (a) the same statistics computed by separate code — the
+app in the browser vs a NumPy script — matched exactly (all voxel counts, HU
+range); (b) anatomical sanity — liver 1,574 mL and spleen 182 mL are normal adult
+volumes, hovering the liver reads ~50–80 HU; (c) geometric round-trips — synthetic
+clicks produce the exact voxel the flip math predicts, and putting the cursor at
+the spleen's computed centroid lands the crosshair inside the spleen overlay in
+all three planes at once.
+
+**11. What happens with a different AbdomenAtlas case?**
+It loads — same format, and nothing is hardcoded to this case: grids and spacing
+come from the header, unrecognized mask filenames get fallback colors. The honest
+limits: NIfTI-1 little-endian only, and the qform/sform affine is ignored — I
+assume axis-aligned RAS voxels, which holds for this dataset. Handling arbitrary
+orientations via the sform matrix is the first thing I'd add for general data.
+
+**12. Biggest known limitations?**
+The affine assumption above; everything held in memory (fine to a few hundred MB,
+then you want chunked loading); no MPR obliques; the 3D view is splats, not a
+marching-cubes mesh. All are scoped-out-for-a-demo decisions, not unknowns.
+
+**13. How would you extend this toward what Slicer actually does — editing?**
+The label volume is already the right data structure: painting is writing label
+values under a brush with an undo stack of (index, oldValue) runs; export is
+writing a NIfTI header + the label bytes and gzipping with the native
+`CompressionStream`. Rendering needs zero changes — the LUTs already re-render
+edited labels.
+
+**14. Why didn't you use NiiVue or Cornerstone?**
+Deliberately. Libraries like NiiVue would give all of this out of the box — in a
+production team codebase that's likely the right call, and I'd advocate for it.
+But this demo's job is to show I understand the pipeline down to the bytes, and
+having parsed the format by hand makes me more useful *with* those libraries,
+not less.
+
+**15. How long did this take, and did you use AI tools?**
+Answer honestly: built with AI assistance in about a day, then audited — every
+design decision in this document is one I can defend without notes. This document
+is the proof of the second half.

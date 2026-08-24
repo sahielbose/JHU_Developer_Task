@@ -49,6 +49,18 @@ publicly hosted BodyMaps sample `BDMAP_00000338`:
 
 ## Architecture
 
-One `index.html`, vanilla HTML/CSS/JS. See [docs/EXPLAINER.md](docs/EXPLAINER.md)
-for a walkthrough of the pipeline: gunzip → NIfTI header parse → HU rescale →
-label-volume merge → canvas slice rendering.
+One `index.html`, vanilla HTML/CSS/JS — no frameworks, no build step, no external
+requests. See [docs/EXPLAINER.md](docs/EXPLAINER.md) for a full walkthrough of the
+pipeline (gunzip → NIfTI header parse → HU rescale → label-volume merge → canvas
+slice rendering → z-buffered 3D splatting) and how each stage was verified.
+
+Rendering is CPU-only and measured: ~1.2 ms per 2D slice, ~7 ms for a full
+four-view render including the 183k-point 3D view — no GPU required.
+
+Correctness was checked against independent ground truth (a NumPy reimplementation
+of the parser: all organ voxel counts and the HU range match exactly) and against
+anatomy (liver 1,574 mL, spleen 182 mL — normal adult values; radiological display
+conventions verified organ-by-organ).
+
+Requires a browser with `DecompressionStream` (Chrome/Edge 80+, Safari 16.4+,
+Firefox 113+). Developed and tested in Chromium.
