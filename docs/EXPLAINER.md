@@ -8,10 +8,7 @@ explain every design decision in this repo without looking at the code.
 
 1. **[Phase 1 — Data pipeline](#phase-1--data-pipeline)** *(done)*
 2. **[Phase 2 — Axial viewer](#phase-2--axial-viewer)** *(done)*
-3. **Phase 3 — Three planes** *(pending)*
-   - Reslicing: coronal and sagittal from the same array
-   - Anisotropic voxels and aspect correction
-   - Linked crosshairs
+3. **[Phase 3 — Three planes](#phase-3--three-planes)** *(done)*
 4. **Phase 4 — 3D view + polish** *(pending)*
 5. **Mock Q&A** *(written last)* — questions a reviewer might ask, with the answers
    you should be able to give cold.
@@ -166,3 +163,68 @@ kidney-shaped structures.
 **Q you should be able to answer after this section:** Why does a wider window lower
 contrast? Why must the x-axis be flipped, and how was the bug noticed? Why is slice
 extraction fast without a GPU?
+
+---
+
+## Phase 3 — Three planes
+
+### 1. Reslicing is just a different iteration order
+
+The volume is one flat array indexed by `i = x + nx*(y + ny*z)`. The three planes are
+three ways of walking it:
+
+- **Axial** (fix z): vary x, y — memory-contiguous, the fast one.
+- **Coronal** (fix y): vary x, z — row-contiguous per z.
+- **Sagittal** (fix x): vary y, z — strided; every pixel is a jump of `nx` elements.
+
+No copies, no precomputed reslices — each view reads straight from the same array.
+Even the worst-case strided walk renders all three views in ~2 ms.
+
+### 2. Anisotropy: why coronal/sagittal would look squashed
+
+Voxels are 0.816 × 0.816 × 2.5 mm. In-plane axial pixels are square, but any view that
+puts the z-axis on screen has pixels ~3× taller than wide. Drawn 1:1, a 71-slice-tall
+coronal view would look like the patient was crushed to a third of their height.
+
+Fix: the canvas keeps its *voxel* resolution (e.g. 502 × 71), and CSS `aspect-ratio`
+is set to the *millimetre* proportions (`nx·sx / nz·sz`), so the browser stretches the
+bitmap to true physical proportions (with bilinear smoothing for free). Physical size
+comes from the header's `pixdim` — the same numbers that give organ volumes in mL.
+
+### 3. Display conventions per plane (matching Slicer)
+
+Each viewport is labeled and oriented like Slicer's, including its color code
+(red = axial, yellow = sagittal, green = coronal):
+
+- **Axial** — viewed from the feet: patient R on image left, A at top.
+- **Sagittal** — viewed from the patient's left: A on image left, S at top.
+- **Coronal** — viewed from the front: patient R on image left, S at top.
+
+NIfTI's +x/+y/+z point Right/Anterior/Superior, so each view flips one or both display
+axes to land on its convention (e.g. z must flip in coronal/sagittal because +z is
+superior but canvas y grows downward).
+
+### 4. Linked crosshairs
+
+There is one shared cursor `(x, y, z)` in voxel space — the single source of truth.
+Each view *displays* the slice at its own axis of the cursor (axial shows slice z,
+coronal slice y, sagittal slice x) and *draws* the other two coordinates as crosshair
+lines. Clicking or dragging in any view converts the pointer position back to voxel
+coordinates (undoing the CSS scaling and that view's flips) and updates the shared
+cursor; all three views re-render. That's the entire linking mechanism — no events
+between views, just shared state. Scrolling in a view increments its own axis.
+
+### 5. How Phase 3 was verified
+
+- **Anatomy again:** sagittal shows the spine at P with the aorta running anterior to
+  it; coronal shows liver under R, spleen under L; nobody squashed.
+- **Numerically:** a synthetic click at 80% across the coronal view produced cursor
+  x = 100 — exactly `nx−1−⌊0.80·502⌋`, confirming the flip math round-trips.
+- **Consistency test:** computed the spleen's centroid from the label volume, moved
+  the cursor there — all three views showed the crosshair inside the purple spleen
+  overlay, and the centroid read 100 HU (normal contrast-enhanced spleen). One shared
+  data structure, three projections, one anatomical point.
+
+**Q you should be able to answer after this section:** Why does sagittal reslicing
+have the worst memory access pattern? Where does the ~3× stretch factor come from —
+derive it. Why does crosshair linking need no cross-view event system?

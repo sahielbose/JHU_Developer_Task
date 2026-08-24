@@ -34,7 +34,7 @@
   }
   header h1 { font-size: 19px; font-weight: 650; letter-spacing: 0.2px; }
   header .sub { color: var(--text-dim); font-size: 13px; }
-  main { flex: 1; padding: 24px 28px; max-width: 1100px; width: 100%; margin: 0 auto; }
+  main { flex: 1; padding: 24px 28px; max-width: 1500px; width: 100%; margin: 0 auto; }
 
   /* ---- loader ---- */
   #dropzone {
@@ -69,85 +69,92 @@
   #log .ok { color: var(--ok); }
   #log .err { color: var(--err); }
 
-  /* ---- phase 1 report ---- */
+  /* ---- cards / controls ---- */
   .card {
     background: var(--panel);
     border: 1px solid var(--panel-edge);
     border-radius: 10px;
-    padding: 18px 20px;
-    margin-top: 18px;
+    padding: 14px 16px;
   }
-  .card h2 { font-size: 14px; font-weight: 650; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
-  .kv { display: grid; grid-template-columns: 190px 1fr; row-gap: 4px; font-size: 14px; }
-  .kv .k { color: var(--text-dim); }
-  table { border-collapse: collapse; width: 100%; font-size: 14px; }
-  th { text-align: left; color: var(--text-dim); font-weight: 600; padding: 4px 12px 8px 0; border-bottom: 1px solid var(--panel-edge); }
-  td { padding: 6px 12px 6px 0; border-bottom: 1px solid #1e232d; }
-  td.num { font-variant-numeric: tabular-nums; }
-  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 9px; }
-  .note { margin-top: 16px; color: var(--text-dim); font-size: 13px; }
-
-  /* ---- viewer ---- */
-  #viewer { display: flex; gap: 18px; align-items: flex-start; }
-  #canvas-wrap {
-    position: relative;
-    flex: 1;
-    background: #000;
-    border: 1px solid var(--panel-edge);
-    border-radius: 10px;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-  }
-  #slice-canvas {
-    max-width: 100%;
-    max-height: 76vh;
-    width: auto;
-    height: auto;
-    display: block;
-  }
-  .hud {
-    position: absolute;
-    font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: #cfd6df;
-    background: rgba(10, 12, 16, 0.72);
-    padding: 4px 10px;
-    border-radius: 6px;
-    pointer-events: none;
-  }
-  #hud-slice { top: 16px; left: 16px; }
-  #hud-hover { bottom: 16px; left: 16px; }
-  .orient {
-    position: absolute;
-    font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: #e8b64c;
-    pointer-events: none;
-    text-shadow: 0 0 4px #000;
-  }
-  #or-l { right: 18px; top: 50%; transform: translateY(-50%); }
-  #or-r { left: 18px; top: 50%; transform: translateY(-50%); }
-  #or-a { top: 14px; left: 50%; transform: translateX(-50%); }
-  #or-p { bottom: 14px; left: 50%; transform: translateX(-50%); }
-  #sidebar { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; }
-  #sidebar .card { margin-top: 0; padding: 14px 16px; }
+  .card h2 { font-size: 13px; font-weight: 650; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; }
+  .note { color: var(--text-dim); font-size: 12.5px; }
   .ctl-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 13px; }
-  .ctl-row label { color: var(--text-dim); width: 58px; flex-shrink: 0; }
+  .ctl-row label { color: var(--text-dim); width: 62px; flex-shrink: 0; }
   .ctl-row input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
-  .ctl-row .val { width: 44px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .ctl-row .val { width: 52px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
   .presets { display: flex; gap: 8px; margin-top: 10px; }
   .presets button { padding: 4px 10px; font-size: 12.5px; border-radius: 6px; }
   .presets button.active { border-color: var(--accent); color: var(--accent); }
   .legend-row { display: flex; align-items: center; gap: 9px; padding: 3px 0; font-size: 13.5px; cursor: pointer; }
   .legend-row input { accent-color: var(--accent); }
   .legend-row .count { margin-left: auto; color: var(--text-dim); font-size: 12px; font-variant-numeric: tabular-nums; }
-  .legend-tools { display: flex; gap: 12px; margin-bottom: 8px; font-size: 12.5px; }
+  .legend-tools { display: flex; gap: 12px; margin: 8px 0; font-size: 12.5px; }
   .legend-tools a { color: var(--accent); cursor: pointer; text-decoration: none; }
   .meta { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
-  @media (max-width: 900px) {
+  label.inline { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; margin-top: 8px; }
+  label.inline input { accent-color: var(--accent); }
+
+  /* ---- 2x2 viewer ---- */
+  #viewer { display: flex; gap: 16px; align-items: flex-start; }
+  #view-col { flex: 1; min-width: 0; }
+  #views { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .cell {
+    background: #000;
+    border: 1px solid var(--panel-edge);
+    border-top: 2px solid var(--vc, var(--panel-edge));
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .cell-head {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 12px;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--text-dim);
+    background: #12151b;
+  }
+  .cell-head .t { color: var(--vc); font-weight: 700; }
+  .cell-body {
+    position: relative;
+    height: 34vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+  }
+  canvas.slice { max-width: 100%; max-height: 100%; width: auto; height: auto; cursor: crosshair; }
+  .orient {
+    position: absolute;
+    font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #e8b64c;
+    pointer-events: none;
+    text-shadow: 0 0 4px #000;
+  }
+  .or-left  { left: 10px; top: 50%; transform: translateY(-50%); }
+  .or-right { right: 10px; top: 50%; transform: translateY(-50%); }
+  .or-top   { top: 8px; left: 50%; transform: translateX(-50%); }
+  .or-bot   { bottom: 8px; left: 50%; transform: translateX(-50%); }
+  .placeholder-body { color: #3f4756; font-size: 14px; }
+  #readout {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+    padding: 7px 14px;
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 8px;
+    font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--text-dim);
+    min-height: 34px;
+  }
+  #readout .pos { color: var(--text); }
+  #sidebar { width: 296px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+  @media (max-width: 1000px) {
     #viewer { flex-direction: column; }
     #sidebar { width: 100%; }
+    #views { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -173,24 +180,62 @@
   </section>
 
   <section id="viewer" hidden>
-    <div id="canvas-wrap">
-      <canvas id="slice-canvas"></canvas>
-      <div class="hud" id="hud-slice"></div>
-      <div class="hud" id="hud-hover" hidden></div>
-      <span class="orient" id="or-r">R</span>
-      <span class="orient" id="or-l">L</span>
-      <span class="orient" id="or-a">A</span>
-      <span class="orient" id="or-p">P</span>
+    <div id="view-col">
+      <div id="views">
+        <div class="cell" style="--vc:#c34a4a">
+          <div class="cell-head"><span class="t">Axial</span><span id="idx-axial"></span></div>
+          <div class="cell-body">
+            <canvas class="slice" id="canvas-axial"></canvas>
+            <span class="orient or-left">R</span><span class="orient or-right">L</span>
+            <span class="orient or-top">A</span><span class="orient or-bot">P</span>
+          </div>
+        </div>
+        <div class="cell" style="--vc:#5b7dd9">
+          <div class="cell-head"><span class="t">3D</span><span></span></div>
+          <div class="cell-body placeholder-body" id="cell-3d">Volume view — next milestone</div>
+        </div>
+        <div class="cell" style="--vc:#d9c34a">
+          <div class="cell-head"><span class="t">Sagittal</span><span id="idx-sagittal"></span></div>
+          <div class="cell-body">
+            <canvas class="slice" id="canvas-sagittal"></canvas>
+            <span class="orient or-left">A</span><span class="orient or-right">P</span>
+            <span class="orient or-top">S</span><span class="orient or-bot">I</span>
+          </div>
+        </div>
+        <div class="cell" style="--vc:#5aa66b">
+          <div class="cell-head"><span class="t">Coronal</span><span id="idx-coronal"></span></div>
+          <div class="cell-body">
+            <canvas class="slice" id="canvas-coronal"></canvas>
+            <span class="orient or-left">R</span><span class="orient or-right">L</span>
+            <span class="orient or-top">S</span><span class="orient or-bot">I</span>
+          </div>
+        </div>
+      </div>
+      <div id="readout"><span class="pos" id="readout-pos"></span><span id="readout-wl"></span></div>
     </div>
+
     <aside id="sidebar">
       <div class="card">
-        <h2>Slice</h2>
+        <h2>Slices</h2>
         <div class="ctl-row">
-          <label for="slice-slider">Axial</label>
-          <input type="range" id="slice-slider" min="0" value="0" step="1">
-          <span class="val" id="slice-val"></span>
+          <label for="slider-axial">Axial</label>
+          <input type="range" id="slider-axial" min="0" value="0" step="1">
+          <span class="val" id="val-axial"></span>
         </div>
-        <div class="note" style="margin-top:8px">Scroll on the image to scrub.</div>
+        <div class="ctl-row">
+          <label for="slider-sagittal">Sagittal</label>
+          <input type="range" id="slider-sagittal" min="0" value="0" step="1">
+          <span class="val" id="val-sagittal"></span>
+        </div>
+        <div class="ctl-row">
+          <label for="slider-coronal">Coronal</label>
+          <input type="range" id="slider-coronal" min="0" value="0" step="1">
+          <span class="val" id="val-coronal"></span>
+        </div>
+        <label class="inline"><input type="checkbox" id="crosshair-toggle" checked>
+          Linked crosshairs</label>
+        <div class="note" style="margin-top:6px">Click or drag in any view to move the
+        crosshair. Scroll to scrub slices.</div>
       </div>
       <div class="card">
         <h2>Window / Level</h2>
@@ -213,9 +258,7 @@
           <input type="range" id="alpha-slider" min="0" max="100" value="45" step="1">
           <span class="val" id="alpha-val">45%</span>
         </div>
-        <div class="legend-tools" style="margin-top:10px">
-          <a id="all-on">all</a><a id="all-off">none</a>
-        </div>
+        <div class="legend-tools"><a id="all-on">all</a><a id="all-off">none</a></div>
         <div id="legend"></div>
       </div>
       <div class="card">
@@ -311,11 +354,11 @@ function parseNifti(buffer, filename) {
  * 3. Volume store — CT + merged label volume
  * =================================================================== */
 
-// Filled by ingest(); Phase 2's renderer reads from here.
+// Filled by ingest(); the renderer reads from here.
 const app = {
   ct: null,        // parsed NIfTI of the CT (raw values; HU = raw*slope + inter)
   labels: null,    // Uint8Array, same grid as CT; 0 = background, 1..N = structures
-  structures: [],  // [{name, color, labelValue, voxels}]
+  structures: [],  // [{name, color, labelValue, voxels, visible}]
   huRange: null,
 };
 window.app = app;  // exposed for debugging
@@ -379,7 +422,7 @@ async function ingest(entries) {
     log(`<span class="ok">✓</span> ${name}: ${voxels.toLocaleString()} voxels`);
   }
 
-  // Raw min/max in one pass — used for the report and later for windowing sanity.
+  // Raw min/max in one pass — used for the report and windowing sanity.
   let min = Infinity, max = -Infinity;
   const cd = ct.data;
   for (let i = 0; i < nvox; i++) {
@@ -477,7 +520,14 @@ sampleBtn.addEventListener('click', async () => {
 });
 
 /* ===================================================================
- * 5. Viewer — axial slice renderer + controls
+ * 5. Viewer — three orthogonal planes with linked crosshairs
+ *
+ * Display conventions (matching 3D Slicer's viewports):
+ *   axial    — patient R on image left, A at top       (viewed from the feet)
+ *   sagittal — A on image left, S at top               (viewed from the left)
+ *   coronal  — patient R on image left, S at top       (viewed from the front)
+ * NIfTI axes point R/A/S (+x right, +y anterior, +z superior), so each view
+ * flips one or both display axes to land on the convention above.
  * =================================================================== */
 
 const PRESETS = [
@@ -486,11 +536,15 @@ const PRESETS = [
   { name: 'Lung',    window: 1500, level: -600 },
 ];
 
-const view = { z: 0, window: 400, level: 40, alpha: 0.45 };
+const view = {
+  cursor: { x: 0, y: 0, z: 0 },   // shared crosshair position, voxel coords
+  window: 400, level: 40,
+  alpha: 0.45,
+  crosshair: true,
+};
 
 const $ = id => document.getElementById(id);
-let ctx = null, imageData = null;
-// Per-label lookup tables rebuilt when visibility changes (index = label value)
+const views = {};   // key -> {canvas, ctx, imageData, w, h}
 let lutR, lutG, lutB, lutVis, lutName;
 
 function rebuildLuts() {
@@ -506,52 +560,133 @@ function rebuildLuts() {
   }
 }
 
-function renderSlice() {
-  const { ct, labels } = app;
-  const [nx, ny, nz] = ct.dims;
-  const z = view.z;
-
-  // Fold the HU rescale into the window mapping so the per-pixel work is
-  // one multiply-add on the raw int16 value.
+// Window mapping with the HU rescale folded in: gray = (raw - rawLo) * rawScale
+function windowConstants() {
+  const { ct } = app;
   const loHU = view.level - view.window / 2;
-  const rawLo = (loHU - ct.inter) / ct.slope;
-  const rawScale = 255 * ct.slope / view.window;
-  const a = view.alpha, ia = 1 - a;
-
-  const px = imageData.data;
-  const data = ct.data;
-  let p = 0;
-  for (let row = 0; row < ny; row++) {
-    // NIfTI y points anterior; canvas y points down: flip so the patient's
-    // front is at the top. NIfTI x points to the patient's right: flip so
-    // patient-right shows on the image's left (radiological convention,
-    // matching Slicer's axial view).
-    const base = nx * ((ny - 1 - row) + ny * z);
-    for (let dx = 0; dx < nx; dx++) {
-      const i = base + (nx - 1 - dx);
-      let g = (data[i] - rawLo) * rawScale;
-      g = g < 0 ? 0 : g > 255 ? 255 : g;
-      const label = labels[i];
-      if (label && lutVis[label]) {
-        px[p]     = g * ia + lutR[label] * a;
-        px[p + 1] = g * ia + lutG[label] * a;
-        px[p + 2] = g * ia + lutB[label] * a;
-      } else {
-        px[p] = px[p + 1] = px[p + 2] = g;
-      }
-      px[p + 3] = 255;
-      p += 4;
-    }
-  }
-  ctx.putImageData(imageData, 0, 0);
-  $('hud-slice').textContent =
-    `Axial · slice ${z + 1}/${nz} · W ${view.window} L ${view.level}`;
+  return {
+    rawLo: (loHU - ct.inter) / ct.slope,
+    rawScale: 255 * ct.slope / view.window,
+  };
 }
 
-function markActivePreset() {
-  for (const b of $('presets').children)
-    b.classList.toggle('active',
-      +b.dataset.w === view.window && +b.dataset.l === view.level);
+function shadePixel(px, p, g, label, a, ia) {
+  if (label && lutVis[label]) {
+    px[p]     = g * ia + lutR[label] * a;
+    px[p + 1] = g * ia + lutG[label] * a;
+    px[p + 2] = g * ia + lutB[label] * a;
+  } else {
+    px[p] = px[p + 1] = px[p + 2] = g;
+  }
+  px[p + 3] = 255;
+}
+
+function renderView(key) {
+  const v = views[key];
+  const { ct, labels } = app;
+  const [nx, ny, nz] = ct.dims;
+  const { x: cx, y: cy, z: cz } = view.cursor;
+  const { rawLo, rawScale } = windowConstants();
+  const a = view.alpha, ia = 1 - a;
+  const data = ct.data, px = v.imageData.data;
+  let p = 0;
+
+  if (key === 'axial') {                      // plane (x,y) at z = cz
+    for (let row = 0; row < ny; row++) {
+      const base = nx * ((ny - 1 - row) + ny * cz);      // y flip: A at top
+      for (let dx = 0; dx < nx; dx++, p += 4) {
+        const i = base + (nx - 1 - dx);                  // x flip: R on left
+        let g = (data[i] - rawLo) * rawScale;
+        g = g < 0 ? 0 : g > 255 ? 255 : g;
+        shadePixel(px, p, g, labels[i], a, ia);
+      }
+    }
+  } else if (key === 'coronal') {             // plane (x,z) at y = cy
+    for (let row = 0; row < nz; row++) {
+      const base = nx * (cy + ny * (nz - 1 - row));      // z flip: S at top
+      for (let dx = 0; dx < nx; dx++, p += 4) {
+        const i = base + (nx - 1 - dx);                  // x flip: R on left
+        let g = (data[i] - rawLo) * rawScale;
+        g = g < 0 ? 0 : g > 255 ? 255 : g;
+        shadePixel(px, p, g, labels[i], a, ia);
+      }
+    }
+  } else {                                    // sagittal: plane (y,z) at x = cx
+    for (let row = 0; row < nz; row++) {
+      const zBase = ny * (nz - 1 - row);                 // z flip: S at top
+      for (let dx = 0; dx < ny; dx++, p += 4) {
+        const i = cx + nx * ((ny - 1 - dx) + zBase);     // y flip: A on left
+        let g = (data[i] - rawLo) * rawScale;
+        g = g < 0 ? 0 : g > 255 ? 255 : g;
+        shadePixel(px, p, g, labels[i], a, ia);
+      }
+    }
+  }
+
+  v.ctx.putImageData(v.imageData, 0, 0);
+  if (view.crosshair) drawCrosshair(key);
+}
+
+// Crosshair display position = cursor voxel run through each view's flips
+function crosshairDisp(key) {
+  const [nx, ny, nz] = app.ct.dims;
+  const { x, y, z } = view.cursor;
+  if (key === 'axial')   return { dx: nx - 1 - x, row: ny - 1 - y };
+  if (key === 'coronal') return { dx: nx - 1 - x, row: nz - 1 - z };
+  return                        { dx: ny - 1 - y, row: nz - 1 - z };  // sagittal
+}
+
+function drawCrosshair(key) {
+  const v = views[key];
+  const { dx, row } = crosshairDisp(key);
+  const c = v.ctx;
+  c.strokeStyle = 'rgba(120, 200, 255, 0.55)';
+  c.lineWidth = 1;
+  c.beginPath();
+  c.moveTo(dx + 0.5, 0); c.lineTo(dx + 0.5, v.h);
+  c.moveTo(0, row + 0.5); c.lineTo(v.w, row + 0.5);
+  c.stroke();
+}
+
+// Pointer position in a view -> voxel coords (undo CSS scaling + flips)
+function voxelFromEvent(key, e) {
+  const v = views[key];
+  const rect = v.canvas.getBoundingClientRect();
+  const dx = Math.floor((e.clientX - rect.left) / rect.width * v.w);
+  const row = Math.floor((e.clientY - rect.top) / rect.height * v.h);
+  if (dx < 0 || dx >= v.w || row < 0 || row >= v.h) return null;
+  const [nx, ny, nz] = app.ct.dims;
+  const { x, y, z } = view.cursor;
+  if (key === 'axial')   return { x: nx - 1 - dx, y: ny - 1 - row, z };
+  if (key === 'coronal') return { x: nx - 1 - dx, y, z: nz - 1 - row };
+  return                        { x, y: ny - 1 - dx, z: nz - 1 - row };  // sagittal
+}
+
+function renderAll() {
+  renderView('axial');
+  renderView('sagittal');
+  renderView('coronal');
+  updateHuds();
+}
+
+function updateHuds() {
+  const [nx, ny, nz] = app.ct.dims;
+  const { x, y, z } = view.cursor;
+  $('idx-axial').textContent = `${z + 1}/${nz}`;
+  $('idx-sagittal').textContent = `${x + 1}/${nx}`;
+  $('idx-coronal').textContent = `${y + 1}/${ny}`;
+  $('slider-axial').value = z;    $('val-axial').textContent = `${z + 1}/${nz}`;
+  $('slider-sagittal').value = x; $('val-sagittal').textContent = `${x + 1}/${nx}`;
+  $('slider-coronal').value = y;  $('val-coronal').textContent = `${y + 1}/${ny}`;
+  $('readout-wl').textContent = `W ${view.window} · L ${view.level}`;
+}
+
+function setCursor(x, y, z) {
+  const [nx, ny, nz] = app.ct.dims;
+  view.cursor.x = Math.max(0, Math.min(nx - 1, x));
+  view.cursor.y = Math.max(0, Math.min(ny - 1, y));
+  view.cursor.z = Math.max(0, Math.min(nz - 1, z));
+  renderAll();
 }
 
 function setWindowLevel(w, l) {
@@ -559,16 +694,19 @@ function setWindowLevel(w, l) {
   view.level = Math.round(l);
   $('win-slider').value = view.window; $('win-val').textContent = view.window;
   $('lev-slider').value = view.level;  $('lev-val').textContent = view.level;
-  markActivePreset();
-  renderSlice();
+  for (const b of $('presets').children)
+    b.classList.toggle('active',
+      +b.dataset.w === view.window && +b.dataset.l === view.level);
+  renderAll();
 }
 
-function setSlice(z) {
-  const nz = app.ct.dims[2];
-  view.z = Math.max(0, Math.min(nz - 1, z));
-  $('slice-slider').value = view.z;
-  $('slice-val').textContent = `${view.z + 1}/${nz}`;
-  renderSlice();
+function showReadout(key, vox) {
+  const { x, y, z } = vox;
+  const hu = Math.round(huAt(x, y, z));
+  const [nx, ny] = app.ct.dims;
+  const label = app.labels[x + nx * (y + ny * z)];
+  $('readout-pos').textContent =
+    `${key} · (${x}, ${y}, ${z}) · ${hu} HU` + (label ? ` · ${lutName[label]}` : '');
 }
 
 function buildLegend() {
@@ -583,7 +721,7 @@ function buildLegend() {
     row.querySelector('input').addEventListener('change', e => {
       s.visible = e.target.checked;
       lutVis[s.labelValue] = s.visible ? 1 : 0;
-      renderSlice();
+      renderAll();
     });
     legend.appendChild(row);
   }
@@ -592,7 +730,7 @@ function buildLegend() {
 function setAllVisible(on) {
   for (const s of app.structures) { s.visible = on; lutVis[s.labelValue] = on ? 1 : 0; }
   for (const cb of $('legend').querySelectorAll('input')) cb.checked = on;
-  renderSlice();
+  renderAll();
 }
 
 function initViewer() {
@@ -603,10 +741,22 @@ function initViewer() {
   document.getElementById('loader').hidden = true;
   document.getElementById('viewer').hidden = false;
 
-  const canvas = $('slice-canvas');
-  canvas.width = nx; canvas.height = ny;
-  ctx = canvas.getContext('2d');
-  imageData = ctx.createImageData(nx, ny);
+  // Canvas grids are in voxels; CSS aspect-ratio stretches each view to its
+  // true millimetre proportions (the anisotropy fix: 2.5 mm slices vs
+  // 0.816 mm in-plane would otherwise squash coronal/sagittal ~3x).
+  const defs = [
+    { key: 'axial',    w: nx, h: ny, mmW: nx * sx, mmH: ny * sy },
+    { key: 'sagittal', w: ny, h: nz, mmW: ny * sy, mmH: nz * sz },
+    { key: 'coronal',  w: nx, h: nz, mmW: nx * sx, mmH: nz * sz },
+  ];
+  for (const d of defs) {
+    const canvas = $(`canvas-${d.key}`);
+    canvas.width = d.w; canvas.height = d.h;
+    canvas.style.aspectRatio = `${d.mmW} / ${d.mmH}`;
+    const ctx = canvas.getContext('2d');
+    views[d.key] = { key: d.key, canvas, ctx, w: d.w, h: d.h,
+                     imageData: ctx.createImageData(d.w, d.h) };
+  }
   rebuildLuts();
   buildLegend();
 
@@ -618,15 +768,46 @@ function initViewer() {
     `${structures.length} structures<br>` +
     `Colors: Slicer GenericAnatomyColors`;
 
-  // slice controls
-  $('slice-slider').max = nz - 1;
-  $('slice-slider').addEventListener('input', e => setSlice(+e.target.value));
-  canvas.addEventListener('wheel', e => {
-    e.preventDefault();
-    setSlice(view.z + Math.sign(e.deltaY));
-  }, { passive: false });
+  // per-view pointer interaction: hover reads out, click/drag moves the
+  // crosshair, scroll scrubs that view's own axis
+  const wheelAxis = { axial: 'z', coronal: 'y', sagittal: 'x' };
+  for (const key of Object.keys(views)) {
+    const canvas = views[key].canvas;
+    canvas.addEventListener('pointerdown', e => {
+      try { canvas.setPointerCapture(e.pointerId); } catch {}
+      const vox = voxelFromEvent(key, e);
+      if (vox) setCursor(vox.x, vox.y, vox.z);
+    });
+    canvas.addEventListener('pointermove', e => {
+      const vox = voxelFromEvent(key, e);
+      if (!vox) return;
+      if (e.buttons & 1) setCursor(vox.x, vox.y, vox.z);
+      showReadout(key, e.buttons & 1 ? view.cursor : vox);
+    });
+    canvas.addEventListener('pointerleave', () => { $('readout-pos').textContent = ''; });
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const c = { ...view.cursor };
+      c[wheelAxis[key]] += Math.sign(e.deltaY);
+      setCursor(c.x, c.y, c.z);
+    }, { passive: false });
+  }
 
-  // window/level controls
+  // sidebar controls
+  $('slider-axial').max = nz - 1;
+  $('slider-sagittal').max = nx - 1;
+  $('slider-coronal').max = ny - 1;
+  $('slider-axial').addEventListener('input',
+    e => setCursor(view.cursor.x, view.cursor.y, +e.target.value));
+  $('slider-sagittal').addEventListener('input',
+    e => setCursor(+e.target.value, view.cursor.y, view.cursor.z));
+  $('slider-coronal').addEventListener('input',
+    e => setCursor(view.cursor.x, +e.target.value, view.cursor.z));
+  $('crosshair-toggle').addEventListener('change', e => {
+    view.crosshair = e.target.checked;
+    renderAll();
+  });
+
   $('win-slider').addEventListener('input', e => setWindowLevel(+e.target.value, view.level));
   $('lev-slider').addEventListener('input', e => setWindowLevel(view.window, +e.target.value));
   const presets = $('presets');
@@ -639,34 +820,16 @@ function initViewer() {
     presets.appendChild(b);
   }
 
-  // overlay controls
   $('alpha-slider').addEventListener('input', e => {
     view.alpha = +e.target.value / 100;
     $('alpha-val').textContent = `${e.target.value}%`;
-    renderSlice();
+    renderAll();
   });
   $('all-on').addEventListener('click', () => setAllVisible(true));
   $('all-off').addEventListener('click', () => setAllVisible(false));
 
-  // hover readout: canvas coords -> voxel coords (undo CSS scale + y flip)
-  const hover = $('hud-hover');
-  canvas.addEventListener('mousemove', e => {
-    const rect = canvas.getBoundingClientRect();
-    const dx = Math.floor((e.clientX - rect.left) / rect.width * nx);
-    const row = Math.floor((e.clientY - rect.top) / rect.height * ny);
-    if (dx < 0 || dx >= nx || row < 0 || row >= ny) { hover.hidden = true; return; }
-    const x = nx - 1 - dx;   // undo the radiological x flip
-    const y = ny - 1 - row;  // undo the y flip
-    const hu = Math.round(huAt(x, y, view.z));
-    const label = app.labels[x + nx * (y + ny * view.z)];
-    hover.hidden = false;
-    hover.textContent = `(${x}, ${y}, ${view.z}) · ${hu} HU` +
-      (label ? ` · ${lutName[label]}` : '');
-  });
-  canvas.addEventListener('mouseleave', () => { hover.hidden = true; });
-
-  setWindowLevel(400, 40);   // abdomen preset
-  setSlice(Math.floor(nz / 2));
+  view.cursor = { x: nx >> 1, y: ny >> 1, z: nz >> 1 };
+  setWindowLevel(400, 40);   // abdomen preset; also triggers the first render
 }
 </script>
 </body>

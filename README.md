@@ -17,8 +17,8 @@ Johns Hopkins Medicine).
 - [x] 9 organ segmentation overlays with Slicer's GenericAnatomyColors, per-organ toggles + opacity
 - [x] Hover readout: voxel coordinates, HU value, organ name
 - [x] Radiological display convention (patient right on image left) with R/L/A/P orientation labels
-- [ ] Coronal + sagittal views with anisotropic voxel aspect correction
-- [ ] Slicer-style 2×2 layout with linked crosshairs
+- [x] Coronal + sagittal views with anisotropic voxel aspect correction
+- [x] Slicer-style 2×2 layout with linked crosshairs (click/drag to navigate, scroll to scrub)
 - [ ] 3D organ mask view (pure canvas, rotatable)
 
 ## Usage
