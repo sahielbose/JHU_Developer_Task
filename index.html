@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser CT Viewer</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-edge: #262b36;
+    --text: #d7dce2;
+    --text-dim: #8b93a1;
+    --accent: #5b9dd9;
+    --ok: #6fbf73;
+    --err: #e07a7a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 18px 28px 14px;
+    border-bottom: 1px solid var(--panel-edge);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 19px; font-weight: 650; letter-spacing: 0.2px; }
+  header .sub { color: var(--text-dim); font-size: 13px; }
+  main { flex: 1; padding: 24px 28px; max-width: 1100px; width: 100%; margin: 0 auto; }
+
+  /* ---- loader ---- */
+  #dropzone {
+    border: 2px dashed #3a4150;
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--text-dim);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  #dropzone.drag { border-color: var(--accent); background: #171d28; color: var(--text); }
+  #dropzone .big { font-size: 17px; color: var(--text); margin-bottom: 6px; }
+  #dropzone .buttons { margin-top: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  button {
+    background: #232a37;
+    color: var(--text);
+    border: 1px solid #333c4d;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button:hover { background: #2b3444; border-color: var(--accent); }
+  button.primary { background: #24405e; border-color: #35608e; }
+  button.primary:hover { background: #2b4d72; }
+  #log {
+    margin-top: 16px;
+    font: 12.5px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+  }
+  #log .ok { color: var(--ok); }
+  #log .err { color: var(--err); }
+
+  /* ---- phase 1 report ---- */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-top: 18px;
+  }
+  .card h2 { font-size: 14px; font-weight: 650; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+  .kv { display: grid; grid-template-columns: 190px 1fr; row-gap: 4px; font-size: 14px; }
+  .kv .k { color: var(--text-dim); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th { text-align: left; color: var(--text-dim); font-weight: 600; padding: 4px 12px 8px 0; border-bottom: 1px solid var(--panel-edge); }
+  td { padding: 6px 12px 6px 0; border-bottom: 1px solid #1e232d; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 9px; }
+  .note { margin-top: 16px; color: var(--text-dim); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Browser CT Viewer</h1>
+  <span class="sub">CT + per-voxel segmentation in the browser &middot; no install, no server, no dependencies</span>
+</header>
+
+<main>
+  <section id="loader">
+    <div id="dropzone">
+      <div class="big">Drop a CT scan and its segmentation masks here</div>
+      <div>NIfTI files (<code>.nii</code> / <code>.nii.gz</code>) &mdash; individual files or a whole folder</div>
+      <div class="buttons">
+        <button id="pick">Choose files&hellip;</button>
+        <button id="sample" class="primary" hidden>Load sample case (BDMAP_00000338)</button>
+      </div>
+      <input type="file" id="file-input" multiple accept=".nii,.gz" hidden>
+    </div>
+    <pre id="log"></pre>
+  </section>
+
+  <section id="report" hidden></section>
+</main>
+
+<script>
+'use strict';
+
+/* ===================================================================
+ * 1. Constants — organ names and 3D Slicer's GenericAnatomyColors
+ * =================================================================== */
+
+const ORGANS = [
+  { key: 'aorta',        name: 'Aorta',          color: [224,  97,  76] },
+  { key: 'gall_bladder', name: 'Gall bladder',   color: [139, 150,  98] },
+  { key: 'kidney_left',  name: 'Left kidney',    color: [185, 102,  83] },
+  { key: 'kidney_right', name: 'Right kidney',   color: [185, 102,  83] },
+  { key: 'liver',        name: 'Liver',          color: [221, 130, 101] },
+  { key: 'pancreas',     name: 'Pancreas',       color: [249, 180, 111] },
+  { key: 'postcava',     name: 'Postcava (IVC)', color: [  0, 151, 206] },
+  { key: 'spleen',       name: 'Spleen',         color: [157, 108, 162] },
+  { key: 'stomach',      name: 'Stomach',        color: [216, 132, 105] },
+];
+
+// Fallback palette for masks whose filename we don't recognize, so a
+// different case's extra structures still render with distinct colors.
+const EXTRA_COLORS = [
+  [230, 220, 70], [111, 184, 210], [220, 245, 20], [144, 238, 144],
+  [192, 104, 88], [78, 63, 0], [255, 250, 220], [230, 220, 70],
+];
+
+const NIFTI_DATATYPES = {
+  2:   { ctor: Uint8Array,   label: 'uint8'   },
+  4:   { ctor: Int16Array,   label: 'int16'   },
+  8:   { ctor: Int32Array,   label: 'int32'   },
+  16:  { ctor: Float32Array, label: 'float32' },
+  256: { ctor: Int8Array,    label: 'int8'    },
+  512: { ctor: Uint16Array,  label: 'uint16'  },
+};
+
+/* ===================================================================
+ * 2. Decompression + NIfTI-1 parsing
+ * =================================================================== */
+
+async function maybeGunzip(buffer) {
+  const bytes = new Uint8Array(buffer);
+  if (bytes[0] !== 0x1f || bytes[1] !== 0x8b) return buffer;  // not gzip
+  const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return await new Response(stream).arrayBuffer();
+}
+
+function parseNifti(buffer, filename) {
+  const view = new DataView(buffer);
+
+  const sizeofHdr = view.getInt32(0, true);
+  if (sizeofHdr !== 348) {
+    if (view.getInt32(0, false) === 348)
+      throw new Error(`${filename}: big-endian NIfTI is not supported`);
+    throw new Error(`${filename}: not a NIfTI-1 file (sizeof_hdr = ${sizeofHdr})`);
+  }
+  const magic = String.fromCharCode(view.getUint8(344), view.getUint8(345), view.getUint8(346));
+  if (magic !== 'n+1' && magic !== 'ni1')
+    throw new Error(`${filename}: bad NIfTI magic "${magic}"`);
+
+  const nx = view.getInt16(42, true);   // dim[1..3] — dim[0] (rank) is at byte 40
+  const ny = view.getInt16(44, true);
+  const nz = view.getInt16(46, true);
+  const datatype = view.getInt16(70, true);
+  const spacing = [view.getFloat32(80, true), view.getFloat32(84, true), view.getFloat32(88, true)];
+  const voxOffset = view.getFloat32(108, true) || 352;
+  let slope = view.getFloat32(112, true);
+  const inter = view.getFloat32(116, true);
+  if (slope === 0 || !isFinite(slope)) slope = 1;  // slope 0 means "no rescale" per spec
+
+  const dt = NIFTI_DATATYPES[datatype];
+  if (!dt) throw new Error(`${filename}: unsupported NIfTI datatype ${datatype}`);
+
+  const nvox = nx * ny * nz;
+  if (voxOffset + nvox * dt.ctor.BYTES_PER_ELEMENT > buffer.byteLength)
+    throw new Error(`${filename}: file too short for ${nx}×${ny}×${nz} ${dt.label}`);
+
+  // Voxel layout is Fortran order: x fastest, so index = x + nx*(y + ny*z)
+  const data = new dt.ctor(buffer, voxOffset, nvox);
+  return { filename, dims: [nx, ny, nz], spacing, datatype, datatypeLabel: dt.label, slope, inter, data };
+}
+
+/* ===================================================================
+ * 3. Volume store — CT + merged label volume
+ * =================================================================== */
+
+// Filled by ingest(); Phase 2's renderer reads from here.
+const app = {
+  ct: null,        // parsed NIfTI of the CT (raw values; HU = raw*slope + inter)
+  labels: null,    // Uint8Array, same grid as CT; 0 = background, 1..N = structures
+  structures: [],  // [{name, color, labelValue, voxels}]
+  huRange: null,
+};
+window.app = app;  // exposed for debugging
+
+function huAt(x, y, z) {
+  const [nx, ny] = app.ct.dims;
+  const raw = app.ct.data[x + nx * (y + ny * z)];
+  return raw * app.ct.slope + app.ct.inter;
+}
+
+function stripName(filename) {
+  return filename.toLowerCase().replace(/\.nii(\.gz)?$/, '').replace(/^.*\//, '');
+}
+
+async function ingest(entries) {
+  // entries: [{name, buffer}]
+  const t0 = performance.now();
+  log(`Reading ${entries.length} file(s)…`);
+
+  let ctEntry = null;
+  const maskEntries = [];
+  for (const e of entries) {
+    const base = stripName(e.name);
+    if (base === 'ct' || base.startsWith('ct_') || base.endsWith('_ct')) ctEntry = e;
+    else maskEntries.push(e);
+  }
+  if (!ctEntry) throw new Error('No CT found — expected a file named ct.nii.gz');
+
+  const ct = parseNifti(await maybeGunzip(ctEntry.buffer), ctEntry.name);
+  const [nx, ny, nz] = ct.dims;
+  const nvox = nx * ny * nz;
+  log(`<span class="ok">✓</span> CT: ${nx}×${ny}×${nz} ${ct.datatypeLabel}, ` +
+      `spacing ${ct.spacing.map(s => s.toFixed(3)).join(' × ')} mm, ` +
+      `rescale HU = raw × ${ct.slope.toPrecision(6)} + ${ct.inter.toPrecision(6)}`);
+
+  // Merge every mask into one label volume: 1 byte per voxel total,
+  // instead of one full volume per organ.
+  const labels = new Uint8Array(nvox);
+  const structures = [];
+  maskEntries.sort((a, b) => stripName(a.name) < stripName(b.name) ? -1 : 1);
+  let extraIdx = 0;
+
+  for (const e of maskEntries) {
+    const base = stripName(e.name);
+    const mask = parseNifti(await maybeGunzip(e.buffer), e.name);
+    if (mask.dims.join() !== ct.dims.join())
+      throw new Error(`${e.name}: grid ${mask.dims.join('×')} does not match CT ${ct.dims.join('×')}`);
+
+    const known = ORGANS.find(o => o.key === base);
+    const labelValue = structures.length + 1;
+    if (labelValue > 255) throw new Error('More than 255 structures are not supported');
+    const color = known ? known.color : EXTRA_COLORS[extraIdx++ % EXTRA_COLORS.length];
+    const name = known ? known.name : base.replace(/_/g, ' ');
+
+    let voxels = 0;
+    const md = mask.data;
+    for (let i = 0; i < nvox; i++) {
+      if (md[i] !== 0) { labels[i] = labelValue; voxels++; }
+    }
+    structures.push({ name, color, labelValue, voxels, visible: true });
+    log(`<span class="ok">✓</span> ${name}: ${voxels.toLocaleString()} voxels`);
+  }
+
+  // Raw min/max in one pass — used for the report and later for windowing sanity.
+  let min = Infinity, max = -Infinity;
+  const cd = ct.data;
+  for (let i = 0; i < nvox; i++) {
+    const v = cd[i];
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+
+  app.ct = ct;
+  app.labels = labels;
+  app.structures = structures;
+  app.huRange = [min * ct.slope + ct.inter, max * ct.slope + ct.inter];
+
+  log(`Done in ${((performance.now() - t0) / 1000).toFixed(2)} s.`);
+  renderReport();
+}
+
+/* ===================================================================
+ * 4. File ingestion — drag & drop (files or folders), picker, sample
+ * =================================================================== */
+
+const logEl = document.getElementById('log');
+function log(html) { logEl.insertAdjacentHTML('beforeend', html + '\n'); }
+function logError(err) { log(`<span class="err">✗ ${err.message || err}</span>`); console.error(err); }
+
+function isNifti(name) { return /\.nii(\.gz)?$/i.test(name) && !name.startsWith('.'); }
+
+async function filesFromDataTransfer(dt) {
+  const out = [];
+  const entries = [...dt.items]
+    .map(i => i.webkitGetAsEntry && i.webkitGetAsEntry())
+    .filter(Boolean);
+  if (!entries.length) return [...dt.files];
+
+  async function walk(entry) {
+    if (entry.isFile) {
+      const f = await new Promise((res, rej) => entry.file(res, rej));
+      out.push(f);
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      let batch;
+      do {  // readEntries returns at most ~100 entries per call
+        batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+        for (const child of batch) await walk(child);
+      } while (batch.length);
+    }
+  }
+  for (const e of entries) await walk(e);
+  return out;
+}
+
+async function loadFiles(files) {
+  const nifti = files.filter(f => isNifti(f.name));
+  if (!nifti.length) { logError(new Error('No .nii / .nii.gz files found in the drop')); return; }
+  try {
+    const entries = await Promise.all(nifti.map(async f => ({ name: f.name, buffer: await f.arrayBuffer() })));
+    await ingest(entries);
+  } catch (err) { logError(err); }
+}
+
+const dropzone = document.getElementById('dropzone');
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', async e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  loadFiles(await filesFromDataTransfer(e.dataTransfer));
+});
+
+const fileInput = document.getElementById('file-input');
+document.getElementById('pick').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => loadFiles([...fileInput.files]));
+
+// "Load sample" only works when served over HTTP (fetch is blocked on file://).
+const SAMPLE_PATHS = ['data/ct.nii.gz',
+  ...ORGANS.map(o => `data/segmentations/${o.key}.nii.gz`)];
+
+const sampleBtn = document.getElementById('sample');
+if (location.protocol.startsWith('http')) {
+  fetch(SAMPLE_PATHS[0], { method: 'HEAD' })
+    .then(r => { if (r.ok) sampleBtn.hidden = false; })
+    .catch(() => {});
+}
+sampleBtn.addEventListener('click', async () => {
+  sampleBtn.disabled = true;
+  try {
+    const entries = await Promise.all(SAMPLE_PATHS.map(async p => {
+      const r = await fetch(p);
+      if (!r.ok) throw new Error(`fetch ${p}: HTTP ${r.status}`);
+      return { name: p.split('/').pop(), buffer: await r.arrayBuffer() };
+    }));
+    await ingest(entries);
+  } catch (err) { logError(err); }
+  sampleBtn.disabled = false;
+});
+
+/* ===================================================================
+ * 5. Phase-1 report — pipeline diagnostics (replaced by the viewer
+ *    in Phase 2; the structure table becomes the legend)
+ * =================================================================== */
+
+function renderReport() {
+  const { ct, structures, huRange } = app;
+  const [nx, ny, nz] = ct.dims;
+  const [sx, sy, sz] = ct.spacing;
+  const voxelML = (sx * sy * sz) / 1000;
+
+  const rows = structures.map(s => `
+    <tr>
+      <td><span class="swatch" style="background: rgb(${s.color})"></span>${s.name}</td>
+      <td class="num">${s.voxels.toLocaleString()}</td>
+      <td class="num">${(s.voxels * voxelML).toFixed(0)} mL</td>
+    </tr>`).join('');
+
+  document.getElementById('report').innerHTML = `
+    <div class="card">
+      <h2>CT volume</h2>
+      <div class="kv">
+        <span class="k">File</span><span>${ct.filename}</span>
+        <span class="k">Grid</span><span>${nx} × ${ny} × ${nz} voxels (${(nx*ny*nz).toLocaleString()} total)</span>
+        <span class="k">Voxel spacing</span><span>${sx.toFixed(3)} × ${sy.toFixed(3)} × ${sz.toFixed(3)} mm (anisotropic)</span>
+        <span class="k">Stored as</span><span>${ct.datatypeLabel}, rescaled to HU on the fly</span>
+        <span class="k">HU range</span><span>${huRange[0].toFixed(1)} to ${huRange[1].toFixed(1)}</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Segmented structures (${structures.length})</h2>
+      <table>
+        <tr><th>Structure</th><th>Voxels</th><th>Volume</th></tr>
+        ${rows}
+      </table>
+      <div class="note">Colors follow 3D Slicer’s GenericAnatomyColors table.
+      All masks share the CT’s grid and are merged into a single label volume
+      (1 byte/voxel). Slice rendering arrives in the next milestone.</div>
+    </div>`;
+  document.getElementById('report').hidden = false;
+}
+</script>
+</body>
+</html>

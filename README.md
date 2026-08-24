@@ -11,7 +11,8 @@ Johns Hopkins Medicine).
 
 > Work in progress — feature list and screenshots land as each milestone completes.
 
-- [ ] NIfTI-1 (`.nii.gz`) parsing in pure JavaScript (native `DecompressionStream`, no libraries)
+- [x] NIfTI-1 (`.nii.gz`) parsing in pure JavaScript (native `DecompressionStream`, no libraries)
+- [x] Drag-and-drop loading (files or a whole folder) — works even from `file://`
 - [ ] Axial slice viewer with window/level controls and radiology presets (Abdomen / Bone / Lung)
 - [ ] 9 organ segmentation overlays with Slicer's GenericAnatomyColors, per-organ toggles
 - [ ] Hover readout: voxel coordinates, HU value, organ name
