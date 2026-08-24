@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Browser CT Viewer</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230f1115'/%3E%3Ccircle cx='8' cy='8' r='5' fill='none' stroke='%23F34A33' stroke-width='1.5'/%3E%3Cpath d='M8 1v14M1 8h14' stroke='%235b9dd9' stroke-width='1'/%3E%3C/svg%3E">
 <style>
   :root {
     --bg: #0f1115;
@@ -14,6 +15,11 @@
     --accent: #5b9dd9;
     --ok: #6fbf73;
     --err: #e07a7a;
+    /* 3D Slicer's view colors */
+    --slicer-red: #F34A33;
+    --slicer-yellow: #EDD54C;
+    --slicer-green: #6EB04B;
+    --slicer-blue: #7483E9;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -25,29 +31,38 @@
     flex-direction: column;
   }
   header {
-    padding: 18px 28px 14px;
+    padding: 14px 28px;
     border-bottom: 1px solid var(--panel-edge);
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 14px;
     flex-wrap: wrap;
   }
   header h1 { font-size: 19px; font-weight: 650; letter-spacing: 0.2px; }
   header .sub { color: var(--text-dim); font-size: 13px; }
-  main { flex: 1; padding: 24px 28px; max-width: 1500px; width: 100%; margin: 0 auto; }
+  .chip {
+    font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--accent);
+    border: 1px solid #2c3c52;
+    background: #16202e;
+    border-radius: 999px;
+    padding: 5px 12px;
+  }
+  #header-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  main { flex: 1; padding: 22px 28px; max-width: 1500px; width: 100%; margin: 0 auto; }
 
   /* ---- loader ---- */
   #dropzone {
     border: 2px dashed #3a4150;
     border-radius: 12px;
-    padding: 48px 24px;
+    padding: 52px 24px;
     text-align: center;
     color: var(--text-dim);
     transition: border-color 0.15s, background 0.15s;
   }
   #dropzone.drag { border-color: var(--accent); background: #171d28; color: var(--text); }
   #dropzone .big { font-size: 17px; color: var(--text); margin-bottom: 6px; }
-  #dropzone .buttons { margin-top: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  #dropzone .buttons { margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
   button {
     background: #232a37;
     color: var(--text);
@@ -56,12 +71,28 @@
     padding: 8px 16px;
     font-size: 14px;
     cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
   }
   button:hover { background: #2b3444; border-color: var(--accent); }
   button.primary { background: #24405e; border-color: #35608e; }
   button.primary:hover { background: #2b4d72; }
+  button.small { padding: 5px 12px; font-size: 12.5px; border-radius: 6px; }
+  .progress {
+    height: 6px;
+    margin-top: 18px;
+    background: #1c2129;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress div {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.12s linear;
+  }
   #log {
-    margin-top: 16px;
+    margin-top: 14px;
     font: 12.5px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
     color: var(--text-dim);
     white-space: pre-wrap;
@@ -124,6 +155,8 @@
     padding: 10px;
   }
   canvas.slice { max-width: 100%; max-height: 100%; width: auto; height: auto; cursor: crosshair; }
+  #canvas-3d { max-width: 100%; max-height: 100%; cursor: grab; }
+  #canvas-3d.dragging { cursor: grabbing; }
   .orient {
     position: absolute;
     font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -135,7 +168,14 @@
   .or-right { right: 10px; top: 50%; transform: translateY(-50%); }
   .or-top   { top: 8px; left: 50%; transform: translateX(-50%); }
   .or-bot   { bottom: 8px; left: 50%; transform: translateX(-50%); }
-  .placeholder-body { color: #3f4756; font-size: 14px; }
+  .hint {
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #3f4756;
+    pointer-events: none;
+  }
   #readout {
     display: flex;
     justify-content: space-between;
@@ -163,6 +203,10 @@
 <header>
   <h1>Browser CT Viewer</h1>
   <span class="sub">CT + per-voxel segmentation in the browser &middot; no install, no server, no dependencies</span>
+  <div id="header-right">
+    <span class="chip" id="case-chip" hidden></span>
+    <button class="small" id="change-case" hidden>Load another case</button>
+  </div>
 </header>
 
 <main>
@@ -176,13 +220,14 @@
       </div>
       <input type="file" id="file-input" multiple accept=".nii,.gz" hidden>
     </div>
+    <div class="progress" id="progress" hidden><div id="progress-fill"></div></div>
     <pre id="log"></pre>
   </section>
 
   <section id="viewer" hidden>
     <div id="view-col">
       <div id="views">
-        <div class="cell" style="--vc:#c34a4a">
+        <div class="cell" style="--vc: var(--slicer-red)">
           <div class="cell-head"><span class="t">Axial</span><span id="idx-axial"></span></div>
           <div class="cell-body">
             <canvas class="slice" id="canvas-axial"></canvas>
@@ -190,11 +235,14 @@
             <span class="orient or-top">A</span><span class="orient or-bot">P</span>
           </div>
         </div>
-        <div class="cell" style="--vc:#5b7dd9">
-          <div class="cell-head"><span class="t">3D</span><span></span></div>
-          <div class="cell-body placeholder-body" id="cell-3d">Volume view — next milestone</div>
+        <div class="cell" style="--vc: var(--slicer-blue)">
+          <div class="cell-head"><span class="t">3D</span><span id="idx-3d"></span></div>
+          <div class="cell-body">
+            <canvas id="canvas-3d"></canvas>
+            <span class="hint">drag rotate &middot; scroll zoom</span>
+          </div>
         </div>
-        <div class="cell" style="--vc:#d9c34a">
+        <div class="cell" style="--vc: var(--slicer-yellow)">
           <div class="cell-head"><span class="t">Sagittal</span><span id="idx-sagittal"></span></div>
           <div class="cell-body">
             <canvas class="slice" id="canvas-sagittal"></canvas>
@@ -202,7 +250,7 @@
             <span class="orient or-top">S</span><span class="orient or-bot">I</span>
           </div>
         </div>
-        <div class="cell" style="--vc:#5aa66b">
+        <div class="cell" style="--vc: var(--slicer-green)">
           <div class="cell-head"><span class="t">Coronal</span><span id="idx-coronal"></span></div>
           <div class="cell-body">
             <canvas class="slice" id="canvas-coronal"></canvas>
@@ -360,6 +408,7 @@ const app = {
   labels: null,    // Uint8Array, same grid as CT; 0 = background, 1..N = structures
   structures: [],  // [{name, color, labelValue, voxels, visible}]
   huRange: null,
+  cloud: null,     // surface point cloud for the 3D view
 };
 window.app = app;  // exposed for debugging
 
@@ -373,10 +422,10 @@ function stripName(filename) {
   return filename.toLowerCase().replace(/\.nii(\.gz)?$/, '').replace(/^.*\//, '');
 }
 
-async function ingest(entries) {
+async function ingest(entries, caseName) {
   // entries: [{name, buffer}]
   const t0 = performance.now();
-  log(`Reading ${entries.length} file(s)…`);
+  log(`Parsing ${entries.length} file(s)…`);
 
   let ctEntry = null;
   const maskEntries = [];
@@ -435,33 +484,75 @@ async function ingest(entries) {
   app.labels = labels;
   app.structures = structures;
   app.huRange = [min * ct.slope + ct.inter, max * ct.slope + ct.inter];
+  app.caseName = caseName || 'custom case';
 
+  buildSurfaceCloud();
+  log(`<span class="ok">✓</span> 3D surface: ${app.cloud.count.toLocaleString()} points`);
   log(`Done in ${((performance.now() - t0) / 1000).toFixed(2)} s.`);
   initViewer();
 }
 
 /* ===================================================================
- * 4. File ingestion — drag & drop (files or folders), picker, sample
+ * 4. File ingestion — drag & drop (files or folders), picker, sample —
+ *    all funneled through a byte-level progress bar
  * =================================================================== */
 
 const logEl = document.getElementById('log');
 function log(html) { logEl.insertAdjacentHTML('beforeend', html + '\n'); }
-function logError(err) { log(`<span class="err">✗ ${err.message || err}</span>`); console.error(err); }
+function logError(err) {
+  log(`<span class="err">✗ ${err.message || err}</span>`);
+  progressHide();
+  console.error(err);
+}
 
 function isNifti(name) { return /\.nii(\.gz)?$/i.test(name) && !name.startsWith('.'); }
 
+const prog = { total: 0, loaded: 0 };
+function progressShow() {
+  prog.total = 0; prog.loaded = 0;
+  document.getElementById('progress').hidden = false;
+  document.getElementById('progress-fill').style.width = '0%';
+  logEl.innerHTML = '';
+}
+function progressHide() { document.getElementById('progress').hidden = true; }
+function progressTick() {
+  if (!prog.total) return;
+  const pct = Math.min(100, prog.loaded / prog.total * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+async function readAllWithProgress(stream) {
+  const reader = stream.getReader();
+  const chunks = [];
+  let len = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    len += value.length;
+    prog.loaded += value.length;
+    progressTick();
+  }
+  const out = new Uint8Array(len);
+  let off = 0;
+  for (const c of chunks) { out.set(c, off); off += c.length; }
+  return out.buffer;
+}
+
 async function filesFromDataTransfer(dt) {
   const out = [];
+  let dirName = null;
   const entries = [...dt.items]
     .map(i => i.webkitGetAsEntry && i.webkitGetAsEntry())
     .filter(Boolean);
-  if (!entries.length) return [...dt.files];
+  if (!entries.length) return { files: [...dt.files], dirName };
 
   async function walk(entry) {
     if (entry.isFile) {
       const f = await new Promise((res, rej) => entry.file(res, rej));
       out.push(f);
     } else if (entry.isDirectory) {
+      if (!dirName) dirName = entry.name;
       const reader = entry.createReader();
       let batch;
       do {  // readEntries returns at most ~100 entries per call
@@ -471,15 +562,20 @@ async function filesFromDataTransfer(dt) {
     }
   }
   for (const e of entries) await walk(e);
-  return out;
+  return { files: out, dirName };
 }
 
-async function loadFiles(files) {
+async function loadFiles(files, caseName) {
   const nifti = files.filter(f => isNifti(f.name));
   if (!nifti.length) { logError(new Error('No .nii / .nii.gz files found in the drop')); return; }
   try {
-    const entries = await Promise.all(nifti.map(async f => ({ name: f.name, buffer: await f.arrayBuffer() })));
-    await ingest(entries);
+    progressShow();
+    prog.total = nifti.reduce((a, f) => a + f.size, 0);
+    const entries = [];
+    for (const f of nifti)
+      entries.push({ name: f.name, buffer: await readAllWithProgress(f.stream()) });
+    await ingest(entries, caseName);
+    progressHide();
   } catch (err) { logError(err); }
 }
 
@@ -489,7 +585,8 @@ dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
 dropzone.addEventListener('drop', async e => {
   e.preventDefault();
   dropzone.classList.remove('drag');
-  loadFiles(await filesFromDataTransfer(e.dataTransfer));
+  const { files, dirName } = await filesFromDataTransfer(e.dataTransfer);
+  loadFiles(files, dirName);
 });
 
 const fileInput = document.getElementById('file-input');
@@ -503,18 +600,27 @@ const SAMPLE_PATHS = ['data/ct.nii.gz',
 const sampleBtn = document.getElementById('sample');
 if (location.protocol.startsWith('http')) {
   fetch(SAMPLE_PATHS[0], { method: 'HEAD' })
-    .then(r => { if (r.ok) sampleBtn.hidden = false; })
+    .then(r => {
+      if (!r.ok) return;
+      sampleBtn.hidden = false;
+      // shareable auto-load link, also used for automated screenshots
+      if (new URLSearchParams(location.search).get('load') === 'sample')
+        sampleBtn.click();
+    })
     .catch(() => {});
 }
 sampleBtn.addEventListener('click', async () => {
   sampleBtn.disabled = true;
   try {
+    progressShow();
     const entries = await Promise.all(SAMPLE_PATHS.map(async p => {
       const r = await fetch(p);
       if (!r.ok) throw new Error(`fetch ${p}: HTTP ${r.status}`);
-      return { name: p.split('/').pop(), buffer: await r.arrayBuffer() };
+      prog.total += +r.headers.get('Content-Length') || 0;
+      return { name: p.split('/').pop(), buffer: await readAllWithProgress(r.body) };
     }));
-    await ingest(entries);
+    await ingest(entries, 'BDMAP_00000338');
+    progressHide();
   } catch (err) { logError(err); }
   sampleBtn.disabled = false;
 });
@@ -535,6 +641,15 @@ const PRESETS = [
   { name: 'Bone',    window: 1800, level: 400  },
   { name: 'Lung',    window: 1500, level: -600 },
 ];
+
+// Crosshair lines are drawn in the color of the PLANE they represent,
+// exactly like Slicer: e.g. in the axial view the vertical line is where
+// the sagittal (yellow) plane cuts, the horizontal where coronal (green) does.
+const CROSS_COLORS = {
+  axial:    { v: 'rgba(237, 213, 76, 0.75)', h: 'rgba(110, 176, 75, 0.75)' },  // sag / cor
+  coronal:  { v: 'rgba(237, 213, 76, 0.75)', h: 'rgba(243, 74, 51, 0.75)' },   // sag / ax
+  sagittal: { v: 'rgba(110, 176, 75, 0.75)', h: 'rgba(243, 74, 51, 0.75)' },   // cor / ax
+};
 
 const view = {
   cursor: { x: 0, y: 0, z: 0 },   // shared crosshair position, voxel coords
@@ -639,11 +754,15 @@ function crosshairDisp(key) {
 function drawCrosshair(key) {
   const v = views[key];
   const { dx, row } = crosshairDisp(key);
+  const colors = CROSS_COLORS[key];
   const c = v.ctx;
-  c.strokeStyle = 'rgba(120, 200, 255, 0.55)';
   c.lineWidth = 1;
+  c.strokeStyle = colors.v;
   c.beginPath();
   c.moveTo(dx + 0.5, 0); c.lineTo(dx + 0.5, v.h);
+  c.stroke();
+  c.strokeStyle = colors.h;
+  c.beginPath();
   c.moveTo(0, row + 0.5); c.lineTo(v.w, row + 0.5);
   c.stroke();
 }
@@ -666,15 +785,20 @@ function renderAll() {
   renderView('axial');
   renderView('sagittal');
   renderView('coronal');
+  render3D();
   updateHuds();
 }
 
 function updateHuds() {
   const [nx, ny, nz] = app.ct.dims;
+  const [sx, sy, sz] = app.ct.spacing;
   const { x, y, z } = view.cursor;
-  $('idx-axial').textContent = `${z + 1}/${nz}`;
-  $('idx-sagittal').textContent = `${x + 1}/${nx}`;
-  $('idx-coronal').textContent = `${y + 1}/${ny}`;
+  // mm offsets from the volume center along each plane's own axis,
+  // signed toward R / A / S (the positive NIfTI directions)
+  const mm = (i, n, s) => ((i - n / 2) * s).toFixed(1);
+  $('idx-axial').textContent = `S ${mm(z, nz, sz)} mm · ${z + 1}/${nz}`;
+  $('idx-sagittal').textContent = `R ${mm(x, nx, sx)} mm · ${x + 1}/${nx}`;
+  $('idx-coronal').textContent = `A ${mm(y, ny, sy)} mm · ${y + 1}/${ny}`;
   $('slider-axial').value = z;    $('val-axial').textContent = `${z + 1}/${nz}`;
   $('slider-sagittal').value = x; $('val-sagittal').textContent = `${x + 1}/${nx}`;
   $('slider-coronal').value = y;  $('val-coronal').textContent = `${y + 1}/${ny}`;
@@ -733,13 +857,237 @@ function setAllVisible(on) {
   renderAll();
 }
 
+/* ===================================================================
+ * 6. 3D view — surface point splatting with a z-buffer, no libraries
+ *
+ * The label volume is scanned once for surface voxels (any of the 6
+ * neighbors differs). Each keeps a position in centered mm space, its
+ * label, and an outward normal estimated from which neighbors are empty.
+ * Per frame: rotate (turntable yaw + pitch), orthographic project, and
+ * splat into an ImageData with a Float32 z-buffer for occlusion. Shading
+ * is a headlight lambert — the light direction is rotated instead of the
+ * 300k normals, so the per-point cost stays at one dot product.
+ * =================================================================== */
+
+const r3 = { yaw: -0.55, pitch: -0.38, zoom: 1, canvasSize: 560 };
+let zbuf = null, img3d = null;
+
+function buildSurfaceCloud() {
+  const { labels } = app;
+  const [nx, ny, nz] = app.ct.dims;
+  const [sx, sy, sz] = app.ct.spacing;
+  const cxm = nx / 2, cym = ny / 2, czm = nz / 2;
+
+  const px = [], py = [], pz = [], pnx = [], pny = [], pnz = [], plab = [];
+  for (let z = 0; z < nz; z++) {
+    for (let y = 0; y < ny; y++) {
+      const base = nx * (y + ny * z);
+      for (let x = 0; x < nx; x++) {
+        const l = labels[base + x];
+        if (!l) continue;
+        // empty(d) = 1 when the neighbor in direction d is background/other
+        const exm = x === 0      || labels[base + x - 1] !== l ? 1 : 0;
+        const exp_ = x === nx - 1 || labels[base + x + 1] !== l ? 1 : 0;
+        const eym = y === 0      || labels[base + x - nx] !== l ? 1 : 0;
+        const eyp = y === ny - 1 || labels[base + x + nx] !== l ? 1 : 0;
+        const ezm = z === 0      || labels[base + x - nx * ny] !== l ? 1 : 0;
+        const ezp = z === nz - 1 || labels[base + x + nx * ny] !== l ? 1 : 0;
+        if (!(exm | exp_ | eym | eyp | ezm | ezp)) continue;  // interior
+        px.push((x - cxm) * sx);
+        py.push((y - cym) * sy);
+        pz.push((z - czm) * sz);
+        // outward normal from empty-neighbor directions (normalized below)
+        let vx = exp_ - exm, vy = eyp - eym, vzn = ezp - ezm;
+        const len = Math.hypot(vx, vy, vzn) || 1;
+        pnx.push(vx / len); pny.push(vy / len); pnz.push(vzn / len);
+        plab.push(l);
+      }
+    }
+  }
+  let maxR = 0;
+  for (let i = 0; i < px.length; i++) {
+    const r = px[i] * px[i] + py[i] * py[i] + pz[i] * pz[i];
+    if (r > maxR) maxR = r;
+  }
+  app.cloud = {
+    count: px.length,
+    x: Float32Array.from(px), y: Float32Array.from(py), z: Float32Array.from(pz),
+    nx: Float32Array.from(pnx), ny: Float32Array.from(pny), nz: Float32Array.from(pnz),
+    label: Uint8Array.from(plab),
+    radius: Math.sqrt(maxR),
+  };
+}
+
+function render3D() {
+  const c = app.cloud;
+  if (!c) return;
+  const W = r3.canvasSize, H = r3.canvasSize;
+  const canvas = $('canvas-3d');
+  if (canvas.width !== W) {
+    canvas.width = W; canvas.height = H;
+    zbuf = new Float32Array(W * H);
+    img3d = canvas.getContext('2d').createImageData(W, H);
+  }
+  const px = img3d.data;
+  px.fill(0);
+  for (let i = 3; i < px.length; i += 4) px[i] = 255;  // opaque black
+  zbuf.fill(Infinity);
+
+  const cosA = Math.cos(r3.yaw), sinA = Math.sin(r3.yaw);
+  const cosB = Math.cos(r3.pitch), sinB = Math.sin(r3.pitch);
+  const scale = (0.46 * W) / c.radius * r3.zoom;
+  const cxs = W / 2, cys = H / 2;
+
+  // Headlight: rotate the light into world space once, instead of rotating
+  // every point's normal per frame. Viewer looks along -depth, so the light
+  // in view space is (0, -1, 0) run through the inverse rotation.
+  const lx = -(-sinA * cosB), ly = -(cosA * cosB), lz = -(-sinB);
+
+  // Splat size tracks the projected inter-slice gap (2.5 mm z-spacing is ~3x
+  // the in-plane spacing) so organ surfaces stay closed instead of banding.
+  const maxSpacing = Math.max(...app.ct.spacing);
+  const splat = Math.max(2, Math.min(5, Math.ceil(scale * maxSpacing * 1.05)));
+  const n = c.count;
+  for (let i = 0; i < n; i++) {
+    const lab = c.label[i];
+    if (!lutVis[lab]) continue;
+    const x = c.x[i], y = c.y[i], z = c.z[i];
+    const x1 = x * cosA - y * sinA;
+    const y1 = x * sinA + y * cosA;
+    const y2 = y1 * cosB - z * sinB;
+    const z2 = y1 * sinB + z * cosB;
+    const u = (cxs - x1 * scale) | 0;      // R on screen left at yaw 0
+    const v = (cys - z2 * scale) | 0;      // S at top
+    if (u < 0 || u >= W - splat || v < 0 || v >= H - splat) continue;
+    const depth = -y2;                     // viewer sits on the +y (anterior) side
+
+    let shade = c.nx[i] * lx + c.ny[i] * ly + c.nz[i] * lz;
+    shade = shade < 0 ? 0 : shade;
+    const f = 0.45 + 0.55 * shade;
+    const r = lutR[lab] * f, g = lutG[lab] * f, b = lutB[lab] * f;
+
+    for (let dv = 0; dv < splat; dv++) {
+      let o = (v + dv) * W + u;
+      for (let du = 0; du < splat; du++, o++) {
+        if (depth < zbuf[o]) {
+          zbuf[o] = depth;
+          const p = o * 4;
+          px[p] = r; px[p + 1] = g; px[p + 2] = b; px[p + 3] = 255;
+        }
+      }
+    }
+  }
+  canvas.getContext('2d').putImageData(img3d, 0, 0);
+  $('idx-3d').textContent = `${c.count.toLocaleString()} pts`;
+}
+
+/* ===================================================================
+ * 7. UI wiring — bound once at startup; initViewer() runs per load
+ * =================================================================== */
+
+function bindUI() {
+  // slice-view pointer interaction: hover reads out, click/drag moves the
+  // crosshair, scroll scrubs that view's own axis
+  const wheelAxis = { axial: 'z', coronal: 'y', sagittal: 'x' };
+  for (const key of ['axial', 'sagittal', 'coronal']) {
+    const canvas = $(`canvas-${key}`);
+    canvas.addEventListener('pointerdown', e => {
+      if (!views[key]) return;
+      try { canvas.setPointerCapture(e.pointerId); } catch {}
+      const vox = voxelFromEvent(key, e);
+      if (vox) setCursor(vox.x, vox.y, vox.z);
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!views[key]) return;
+      const vox = voxelFromEvent(key, e);
+      if (!vox) return;
+      if (e.buttons & 1) setCursor(vox.x, vox.y, vox.z);
+      showReadout(key, e.buttons & 1 ? view.cursor : vox);
+    });
+    canvas.addEventListener('pointerleave', () => { $('readout-pos').textContent = ''; });
+    canvas.addEventListener('wheel', e => {
+      if (!views[key]) return;
+      e.preventDefault();
+      const c = { ...view.cursor };
+      c[wheelAxis[key]] += Math.sign(e.deltaY);
+      setCursor(c.x, c.y, c.z);
+    }, { passive: false });
+  }
+
+  // 3D view: drag to orbit, scroll to zoom
+  const c3 = $('canvas-3d');
+  let dragging = false, lastX = 0, lastY = 0;
+  c3.addEventListener('pointerdown', e => {
+    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    c3.classList.add('dragging');
+    try { c3.setPointerCapture(e.pointerId); } catch {}
+  });
+  c3.addEventListener('pointermove', e => {
+    if (!dragging || !app.cloud) return;
+    r3.yaw += (e.clientX - lastX) * 0.008;
+    r3.pitch = Math.max(-1.5, Math.min(1.5, r3.pitch + (e.clientY - lastY) * 0.008));
+    lastX = e.clientX; lastY = e.clientY;
+    render3D();
+  });
+  c3.addEventListener('pointerup', () => { dragging = false; c3.classList.remove('dragging'); });
+  c3.addEventListener('wheel', e => {
+    if (!app.cloud) return;
+    e.preventDefault();
+    r3.zoom = Math.max(0.4, Math.min(4, r3.zoom * Math.exp(-e.deltaY * 0.0012)));
+    render3D();
+  }, { passive: false });
+
+  // sidebar
+  $('slider-axial').addEventListener('input',
+    e => setCursor(view.cursor.x, view.cursor.y, +e.target.value));
+  $('slider-sagittal').addEventListener('input',
+    e => setCursor(+e.target.value, view.cursor.y, view.cursor.z));
+  $('slider-coronal').addEventListener('input',
+    e => setCursor(view.cursor.x, +e.target.value, view.cursor.z));
+  $('crosshair-toggle').addEventListener('change', e => {
+    view.crosshair = e.target.checked;
+    renderAll();
+  });
+
+  $('win-slider').addEventListener('input', e => setWindowLevel(+e.target.value, view.level));
+  $('lev-slider').addEventListener('input', e => setWindowLevel(view.window, +e.target.value));
+  const presets = $('presets');
+  for (const pz of PRESETS) {
+    const b = document.createElement('button');
+    b.textContent = pz.name;
+    b.dataset.w = pz.window; b.dataset.l = pz.level;
+    b.addEventListener('click', () => setWindowLevel(pz.window, pz.level));
+    presets.appendChild(b);
+  }
+
+  $('alpha-slider').addEventListener('input', e => {
+    view.alpha = +e.target.value / 100;
+    $('alpha-val').textContent = `${e.target.value}%`;
+    renderAll();
+  });
+  $('all-on').addEventListener('click', () => setAllVisible(true));
+  $('all-off').addEventListener('click', () => setAllVisible(false));
+
+  $('change-case').addEventListener('click', () => {
+    $('viewer').hidden = true;
+    $('case-chip').hidden = true;
+    $('change-case').hidden = true;
+    $('loader').hidden = false;
+    logEl.innerHTML = '';
+    progressHide();
+  });
+}
+
 function initViewer() {
   const { ct, structures, huRange } = app;
   const [nx, ny, nz] = ct.dims;
   const [sx, sy, sz] = ct.spacing;
 
-  document.getElementById('loader').hidden = true;
-  document.getElementById('viewer').hidden = false;
+  $('loader').hidden = true;
+  $('viewer').hidden = false;
+  $('case-chip').textContent = app.caseName;
+  $('case-chip').hidden = false;
+  $('change-case').hidden = false;
 
   // Canvas grids are in voxels; CSS aspect-ratio stretches each view to its
   // true millimetre proportions (the anisotropy fix: 2.5 mm slices vs
@@ -768,69 +1116,17 @@ function initViewer() {
     `${structures.length} structures<br>` +
     `Colors: Slicer GenericAnatomyColors`;
 
-  // per-view pointer interaction: hover reads out, click/drag moves the
-  // crosshair, scroll scrubs that view's own axis
-  const wheelAxis = { axial: 'z', coronal: 'y', sagittal: 'x' };
-  for (const key of Object.keys(views)) {
-    const canvas = views[key].canvas;
-    canvas.addEventListener('pointerdown', e => {
-      try { canvas.setPointerCapture(e.pointerId); } catch {}
-      const vox = voxelFromEvent(key, e);
-      if (vox) setCursor(vox.x, vox.y, vox.z);
-    });
-    canvas.addEventListener('pointermove', e => {
-      const vox = voxelFromEvent(key, e);
-      if (!vox) return;
-      if (e.buttons & 1) setCursor(vox.x, vox.y, vox.z);
-      showReadout(key, e.buttons & 1 ? view.cursor : vox);
-    });
-    canvas.addEventListener('pointerleave', () => { $('readout-pos').textContent = ''; });
-    canvas.addEventListener('wheel', e => {
-      e.preventDefault();
-      const c = { ...view.cursor };
-      c[wheelAxis[key]] += Math.sign(e.deltaY);
-      setCursor(c.x, c.y, c.z);
-    }, { passive: false });
-  }
-
-  // sidebar controls
   $('slider-axial').max = nz - 1;
   $('slider-sagittal').max = nx - 1;
   $('slider-coronal').max = ny - 1;
-  $('slider-axial').addEventListener('input',
-    e => setCursor(view.cursor.x, view.cursor.y, +e.target.value));
-  $('slider-sagittal').addEventListener('input',
-    e => setCursor(+e.target.value, view.cursor.y, view.cursor.z));
-  $('slider-coronal').addEventListener('input',
-    e => setCursor(view.cursor.x, +e.target.value, view.cursor.z));
-  $('crosshair-toggle').addEventListener('change', e => {
-    view.crosshair = e.target.checked;
-    renderAll();
-  });
-
-  $('win-slider').addEventListener('input', e => setWindowLevel(+e.target.value, view.level));
-  $('lev-slider').addEventListener('input', e => setWindowLevel(view.window, +e.target.value));
-  const presets = $('presets');
-  presets.innerHTML = '';
-  for (const pz of PRESETS) {
-    const b = document.createElement('button');
-    b.textContent = pz.name;
-    b.dataset.w = pz.window; b.dataset.l = pz.level;
-    b.addEventListener('click', () => setWindowLevel(pz.window, pz.level));
-    presets.appendChild(b);
-  }
-
-  $('alpha-slider').addEventListener('input', e => {
-    view.alpha = +e.target.value / 100;
-    $('alpha-val').textContent = `${e.target.value}%`;
-    renderAll();
-  });
-  $('all-on').addEventListener('click', () => setAllVisible(true));
-  $('all-off').addEventListener('click', () => setAllVisible(false));
+  $('alpha-slider').value = Math.round(view.alpha * 100);
+  $('alpha-val').textContent = `${Math.round(view.alpha * 100)}%`;
 
   view.cursor = { x: nx >> 1, y: ny >> 1, z: nz >> 1 };
   setWindowLevel(400, 40);   // abdomen preset; also triggers the first render
 }
+
+bindUI();
 </script>
 </body>
 </html>

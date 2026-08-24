@@ -7,30 +7,35 @@ no server, no GPU — a single self-contained `index.html` with zero dependencie
 Built as the demo for **BodyMaps Developer Project 1** (Johns Hopkins University /
 Johns Hopkins Medicine).
 
+![Four-up view: axial, sagittal, coronal and 3D with linked crosshairs](docs/screenshot-fourup.png)
+
 ## Features
 
-> Work in progress — feature list and screenshots land as each milestone completes.
-
 - [x] NIfTI-1 (`.nii.gz`) parsing in pure JavaScript (native `DecompressionStream`, no libraries)
-- [x] Drag-and-drop loading (files or a whole folder) — works even from `file://`
-- [x] Axial slice viewer with window/level controls and radiology presets (Abdomen / Bone / Lung)
+- [x] Drag-and-drop loading (files or a whole folder) with byte-level progress — works even from `file://`
+- [x] Window/level controls with radiology presets (Abdomen / Bone / Lung)
 - [x] 9 organ segmentation overlays with Slicer's GenericAnatomyColors, per-organ toggles + opacity
-- [x] Hover readout: voxel coordinates, HU value, organ name
-- [x] Radiological display convention (patient right on image left) with R/L/A/P orientation labels
-- [x] Coronal + sagittal views with anisotropic voxel aspect correction
-- [x] Slicer-style 2×2 layout with linked crosshairs (click/drag to navigate, scroll to scrub)
-- [ ] 3D organ mask view (pure canvas, rotatable)
+- [x] Slicer-style 2×2 layout: axial / sagittal / coronal / 3D, Slicer's viewport color codes
+- [x] Linked crosshairs drawn in each intersecting plane's color — click/drag to navigate, scroll to scrub
+- [x] Anisotropic voxel aspect correction (0.816 mm in-plane vs 2.5 mm slices)
+- [x] Radiological display conventions with R/L, A/P, S/I orientation labels per plane
+- [x] Millimetre slice offsets and voxel/HU/organ hover readout
+- [x] 3D organ surface view — zero-dependency point-splat renderer with z-buffer,
+      lambert shading, drag-to-orbit and scroll-to-zoom
+- [x] Case switching without a reload; `?load=sample` deep link for instant demos
 
 ## Usage
 
 Open `index.html` in any modern browser and drag the CT + segmentation files in —
-or serve the repo with any static file server to have the sample data load automatically:
+or serve the repo with any static file server:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Then visit `http://localhost:8000`.
+Then visit `http://localhost:8000` — a "Load sample case" button appears
+automatically, and `http://localhost:8000/?load=sample` opens straight into the
+loaded viewer.
 
 ## Data
 

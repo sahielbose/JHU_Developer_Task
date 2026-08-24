@@ -9,7 +9,7 @@ explain every design decision in this repo without looking at the code.
 1. **[Phase 1 — Data pipeline](#phase-1--data-pipeline)** *(done)*
 2. **[Phase 2 — Axial viewer](#phase-2--axial-viewer)** *(done)*
 3. **[Phase 3 — Three planes](#phase-3--three-planes)** *(done)*
-4. **Phase 4 — 3D view + polish** *(pending)*
+4. **[Phase 4 — 3D view + polish](#phase-4--3d-view--polish)** *(done)*
 5. **Mock Q&A** *(written last)* — questions a reviewer might ask, with the answers
    you should be able to give cold.
 
@@ -228,3 +228,70 @@ between views, just shared state. Scrolling in a view increments its own axis.
 **Q you should be able to answer after this section:** Why does sagittal reslicing
 have the worst memory access pattern? Where does the ~3× stretch factor come from —
 derive it. Why does crosshair linking need no cross-view event system?
+
+---
+
+## Phase 4 — 3D view + polish
+
+### 1. A 3D renderer with no graphics library
+
+The fourth viewport renders the organ masks in 3D using nothing but a 2D canvas.
+The trick is that we don't need triangles at all — a dense point cloud of *surface
+voxels* reads as a solid surface. Pipeline:
+
+1. **Surface extraction** (once per load): scan the label volume; a voxel is
+   "surface" if any of its 6 neighbors has a different label. Only ~183k of the
+   1.54M organ voxels survive — a 8× reduction. Each surviving point stores its
+   position in **millimetre space** (voxel index × spacing, centered), its label,
+   and an outward normal estimated from which neighbors were empty.
+2. **Per frame**: rotate every point (turntable yaw + pitch — two 2D rotations),
+   orthographically project to screen, and *splat* it as a small square into an
+   `ImageData`, using a `Float32Array` **z-buffer** for occlusion: a pixel is only
+   written if this point is closer than what's already there. No sorting — the
+   z-buffer makes draw order irrelevant, so the whole frame is one O(n) pass.
+   ~7 ms for 183k points ⇒ smooth drag rotation.
+3. **Shading**: lambert with a headlight. The naive version rotates every normal
+   every frame; instead we rotate the *light direction* once by the inverse
+   rotation, so per-point cost is a single dot product. Because positions are in
+   mm space, the anisotropy fix from Phase 3 falls out automatically here.
+4. **Hole filling**: slices are 2.5 mm apart but in-plane voxels 0.816 mm, so a
+   fixed splat leaves stripe gaps between slices when viewed side-on. The splat
+   size scales with the projected slice spacing, keeping surfaces closed at any
+   zoom.
+
+Organ visibility checkboxes drive the same LUT as the 2D views, so hiding the
+liver hides it everywhere at once.
+
+### 2. The polish pass — what makes it read as "Slicer"
+
+- **Crosshair colors carry meaning**: in Slicer, the line drawn across a viewport
+  is the *intersection with another slice plane*, drawn in that plane's color.
+  We do exactly that: in the axial view the vertical line is yellow (sagittal
+  plane) and the horizontal green (coronal); coronal and sagittal both show a red
+  line where the axial plane cuts. The viewport header strips use Slicer's exact
+  view colors (red `#F34A33`, yellow `#EDD54C`, green `#6EB04B`, blue `#7483E9`).
+- **Millimetre offsets** in each header (`S −1.3 mm`) — index × spacing measured
+  from the volume center, signed toward R/A/S — because clinical software talks
+  in physical units, not array indices.
+- **Byte-level loading progress**: both `fetch` responses and dropped `File`s are
+  read as streams, so one progress bar reflects true bytes for either path.
+- **Case switching without reload** (`Load another case`): event listeners are
+  bound exactly once at startup, and per-load state (canvas sizes, LUTs, legend,
+  cursor) is rebuilt in `initViewer()` — re-ingesting is idempotent.
+- **`?load=sample`** deep link: auto-loads the sample case when served over HTTP.
+  Doubles as the hook for automated screenshots (the README image is captured by
+  headless Chrome hitting that URL).
+
+### 3. How Phase 4 was verified
+
+Perf: 6.7 ms per 3D frame while orbiting, 7.3 ms for a full four-view render.
+Toggling the liver dropped lit 3D pixels from 73k to 50k and back — the LUT is
+genuinely shared. The reload round-trip was exercised (no duplicated presets or
+legend rows), and a false alarm was chased down: the point count appeared to
+change between loads, but re-deriving it three ways showed 183,539 every time —
+the "discrepancy" was a misreading of a low-resolution screenshot. Verify against
+data, not eyeballs.
+
+**Q you should be able to answer after this section:** Why does a z-buffer remove
+the need to sort points? Why is rotating the light equivalent to rotating every
+normal? Why do the splats need to grow with zoom?
