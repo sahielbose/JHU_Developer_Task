@@ -7,10 +7,7 @@ explain every design decision in this repo without looking at the code.
 ## Contents
 
 1. **[Phase 1 — Data pipeline](#phase-1--data-pipeline)** *(done)*
-2. **Phase 2 — Axial viewer** *(pending)*
-   - How a 3D array becomes a 2D slice on a canvas
-   - Window/level: what radiologists actually do with those two numbers
-   - Overlay compositing and Slicer's anatomy color table
+2. **[Phase 2 — Axial viewer](#phase-2--axial-viewer)** *(done)*
 3. **Phase 3 — Three planes** *(pending)*
    - Reslicing: coronal and sagittal from the same array
    - Anisotropic voxels and aspect correction
@@ -99,3 +96,73 @@ all coherent.
 **Q you should be able to answer after this section:** Why does the CT file's int16
 range map to exactly ±1000 HU? What breaks if you ignore `scl_slope`? Why is the label
 merge lossy in principle but fine in practice?
+
+---
+
+## Phase 2 — Axial viewer
+
+### 1. From 3D array to 2D image
+
+An axial slice is all voxels sharing one z. With the Fortran-order index
+`i = x + nx*(y + ny*z)`, a slice is *contiguous* in memory — we walk it row by row and
+write each voxel's gray value into a canvas `ImageData` buffer (RGBA bytes), then blit
+it with `putImageData`. No WebGL, no libraries. Measured cost: **~1.2 ms per slice**
+(502×348), which is why scrubbing feels instant — a GPU would be idle here anyway.
+
+### 2. Window / level
+
+A CT spans ~2000 HU but a monitor shows 256 grays, so you choose *which* HU band gets
+the grays. **Level** = the HU value at mid-gray; **Window** = the width of the band.
+Everything below `level − window/2` clips to black, above `level + window/2` to white:
+
+```
+gray = clamp( (HU − (level − window/2)) / window ) × 255
+```
+
+- **Abdomen (W 400 / L 40):** grays span −160..240 HU — organs are distinguishable,
+  bone saturates white, air is black. The default.
+- **Bone (W 1800 / L 400):** wide window centered high — trabecular detail appears,
+  soft tissue flattens to mid-gray.
+- **Lung (W 1500 / L −600):** centered deep in the negatives for aerated tissue.
+
+Implementation detail: instead of converting each voxel to HU first, we substitute
+`HU = raw·slope + inter` into the formula once per frame and precompute two constants,
+so the inner loop does a single multiply-add on the raw int16 — the rescale and the
+windowing collapse into one operation.
+
+### 3. Overlay compositing
+
+Where the label volume is nonzero and that structure is visible, the pixel is a linear
+blend: `out = gray·(1−α) + organColor·α` (α from the opacity slider, default 0.45).
+Colors come from 3D Slicer's **GenericAnatomyColors** table (liver 221,130,101;
+spleen 157,108,162; …) so the palette matches what the BodyMaps lab sees in Slicer
+daily. Per-label visibility/color lookups are tiny typed arrays indexed by label value
+— no hash maps in the hot loop.
+
+### 4. Orientation — the subtle one
+
+NIfTI's canonical axes point Right/Anterior/Superior (+x toward the patient's right,
++y toward their front). A canvas draws y downward and x rightward, so drawing naively
+mirrors the patient twice. Two flips fix it:
+
+- **y flip** puts the patient's front (anterior) at the top of the image.
+- **x flip** puts the patient's *right* on the image's *left* — the **radiological
+  convention** (you view an axial slice from the patient's feet). Slicer does the same.
+
+This was caught during verification by reading the anatomy: the spleen (a left-side
+organ) rendered on the image's left before the x flip — anatomically impossible in
+radiological display. The yellow **R/L/A/P** labels around the viewport make the
+convention explicit, exactly like Slicer's viewport annotations. The hover readout
+undoes both flips so reported (x, y, z) are true voxel indices.
+
+### 5. How Phase 2 was verified
+
+Anatomy as ground truth: liver under the "R" label, spleen under "L", spine at "P";
+hovering the liver read **81 HU** (normal for contrast-enhanced liver, 50–80+);
+stomach gas rendered black; bone preset lit the vertebrae and flattened soft tissue.
+Mask-to-CT registration is visually exact — kidney overlays sit precisely on
+kidney-shaped structures.
+
+**Q you should be able to answer after this section:** Why does a wider window lower
+contrast? Why must the x-axis be flipped, and how was the bug noticed? Why is slice
+extraction fast without a GPU?

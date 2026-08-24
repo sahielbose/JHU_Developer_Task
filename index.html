@@ -86,6 +86,69 @@
   td.num { font-variant-numeric: tabular-nums; }
   .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 9px; }
   .note { margin-top: 16px; color: var(--text-dim); font-size: 13px; }
+
+  /* ---- viewer ---- */
+  #viewer { display: flex; gap: 18px; align-items: flex-start; }
+  #canvas-wrap {
+    position: relative;
+    flex: 1;
+    background: #000;
+    border: 1px solid var(--panel-edge);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+  }
+  #slice-canvas {
+    max-width: 100%;
+    max-height: 76vh;
+    width: auto;
+    height: auto;
+    display: block;
+  }
+  .hud {
+    position: absolute;
+    font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #cfd6df;
+    background: rgba(10, 12, 16, 0.72);
+    padding: 4px 10px;
+    border-radius: 6px;
+    pointer-events: none;
+  }
+  #hud-slice { top: 16px; left: 16px; }
+  #hud-hover { bottom: 16px; left: 16px; }
+  .orient {
+    position: absolute;
+    font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #e8b64c;
+    pointer-events: none;
+    text-shadow: 0 0 4px #000;
+  }
+  #or-l { right: 18px; top: 50%; transform: translateY(-50%); }
+  #or-r { left: 18px; top: 50%; transform: translateY(-50%); }
+  #or-a { top: 14px; left: 50%; transform: translateX(-50%); }
+  #or-p { bottom: 14px; left: 50%; transform: translateX(-50%); }
+  #sidebar { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; }
+  #sidebar .card { margin-top: 0; padding: 14px 16px; }
+  .ctl-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 13px; }
+  .ctl-row label { color: var(--text-dim); width: 58px; flex-shrink: 0; }
+  .ctl-row input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
+  .ctl-row .val { width: 44px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .presets { display: flex; gap: 8px; margin-top: 10px; }
+  .presets button { padding: 4px 10px; font-size: 12.5px; border-radius: 6px; }
+  .presets button.active { border-color: var(--accent); color: var(--accent); }
+  .legend-row { display: flex; align-items: center; gap: 9px; padding: 3px 0; font-size: 13.5px; cursor: pointer; }
+  .legend-row input { accent-color: var(--accent); }
+  .legend-row .count { margin-left: auto; color: var(--text-dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .legend-tools { display: flex; gap: 12px; margin-bottom: 8px; font-size: 12.5px; }
+  .legend-tools a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .meta { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+  @media (max-width: 900px) {
+    #viewer { flex-direction: column; }
+    #sidebar { width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -109,7 +172,58 @@
     <pre id="log"></pre>
   </section>
 
-  <section id="report" hidden></section>
+  <section id="viewer" hidden>
+    <div id="canvas-wrap">
+      <canvas id="slice-canvas"></canvas>
+      <div class="hud" id="hud-slice"></div>
+      <div class="hud" id="hud-hover" hidden></div>
+      <span class="orient" id="or-r">R</span>
+      <span class="orient" id="or-l">L</span>
+      <span class="orient" id="or-a">A</span>
+      <span class="orient" id="or-p">P</span>
+    </div>
+    <aside id="sidebar">
+      <div class="card">
+        <h2>Slice</h2>
+        <div class="ctl-row">
+          <label for="slice-slider">Axial</label>
+          <input type="range" id="slice-slider" min="0" value="0" step="1">
+          <span class="val" id="slice-val"></span>
+        </div>
+        <div class="note" style="margin-top:8px">Scroll on the image to scrub.</div>
+      </div>
+      <div class="card">
+        <h2>Window / Level</h2>
+        <div class="ctl-row">
+          <label for="win-slider">Window</label>
+          <input type="range" id="win-slider" min="1" max="2000" value="400" step="1">
+          <span class="val" id="win-val">400</span>
+        </div>
+        <div class="ctl-row">
+          <label for="lev-slider">Level</label>
+          <input type="range" id="lev-slider" min="-1000" max="1000" value="40" step="1">
+          <span class="val" id="lev-val">40</span>
+        </div>
+        <div class="presets" id="presets"></div>
+      </div>
+      <div class="card">
+        <h2>Segmentation overlays</h2>
+        <div class="ctl-row" style="margin-top:0">
+          <label for="alpha-slider">Opacity</label>
+          <input type="range" id="alpha-slider" min="0" max="100" value="45" step="1">
+          <span class="val" id="alpha-val">45%</span>
+        </div>
+        <div class="legend-tools" style="margin-top:10px">
+          <a id="all-on">all</a><a id="all-off">none</a>
+        </div>
+        <div id="legend"></div>
+      </div>
+      <div class="card">
+        <h2>Volume</h2>
+        <div class="meta" id="volume-meta"></div>
+      </div>
+    </aside>
+  </section>
 </main>
 
 <script>
@@ -280,7 +394,7 @@ async function ingest(entries) {
   app.huRange = [min * ct.slope + ct.inter, max * ct.slope + ct.inter];
 
   log(`Done in ${((performance.now() - t0) / 1000).toFixed(2)} s.`);
-  renderReport();
+  initViewer();
 }
 
 /* ===================================================================
@@ -363,45 +477,196 @@ sampleBtn.addEventListener('click', async () => {
 });
 
 /* ===================================================================
- * 5. Phase-1 report — pipeline diagnostics (replaced by the viewer
- *    in Phase 2; the structure table becomes the legend)
+ * 5. Viewer — axial slice renderer + controls
  * =================================================================== */
 
-function renderReport() {
+const PRESETS = [
+  { name: 'Abdomen', window: 400,  level: 40   },
+  { name: 'Bone',    window: 1800, level: 400  },
+  { name: 'Lung',    window: 1500, level: -600 },
+];
+
+const view = { z: 0, window: 400, level: 40, alpha: 0.45 };
+
+const $ = id => document.getElementById(id);
+let ctx = null, imageData = null;
+// Per-label lookup tables rebuilt when visibility changes (index = label value)
+let lutR, lutG, lutB, lutVis, lutName;
+
+function rebuildLuts() {
+  const n = app.structures.length + 1;
+  lutR = new Uint8Array(n); lutG = new Uint8Array(n); lutB = new Uint8Array(n);
+  lutVis = new Uint8Array(n); lutName = [''];
+  for (const s of app.structures) {
+    lutR[s.labelValue] = s.color[0];
+    lutG[s.labelValue] = s.color[1];
+    lutB[s.labelValue] = s.color[2];
+    lutVis[s.labelValue] = s.visible ? 1 : 0;
+    lutName[s.labelValue] = s.name;
+  }
+}
+
+function renderSlice() {
+  const { ct, labels } = app;
+  const [nx, ny, nz] = ct.dims;
+  const z = view.z;
+
+  // Fold the HU rescale into the window mapping so the per-pixel work is
+  // one multiply-add on the raw int16 value.
+  const loHU = view.level - view.window / 2;
+  const rawLo = (loHU - ct.inter) / ct.slope;
+  const rawScale = 255 * ct.slope / view.window;
+  const a = view.alpha, ia = 1 - a;
+
+  const px = imageData.data;
+  const data = ct.data;
+  let p = 0;
+  for (let row = 0; row < ny; row++) {
+    // NIfTI y points anterior; canvas y points down: flip so the patient's
+    // front is at the top. NIfTI x points to the patient's right: flip so
+    // patient-right shows on the image's left (radiological convention,
+    // matching Slicer's axial view).
+    const base = nx * ((ny - 1 - row) + ny * z);
+    for (let dx = 0; dx < nx; dx++) {
+      const i = base + (nx - 1 - dx);
+      let g = (data[i] - rawLo) * rawScale;
+      g = g < 0 ? 0 : g > 255 ? 255 : g;
+      const label = labels[i];
+      if (label && lutVis[label]) {
+        px[p]     = g * ia + lutR[label] * a;
+        px[p + 1] = g * ia + lutG[label] * a;
+        px[p + 2] = g * ia + lutB[label] * a;
+      } else {
+        px[p] = px[p + 1] = px[p + 2] = g;
+      }
+      px[p + 3] = 255;
+      p += 4;
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+  $('hud-slice').textContent =
+    `Axial · slice ${z + 1}/${nz} · W ${view.window} L ${view.level}`;
+}
+
+function markActivePreset() {
+  for (const b of $('presets').children)
+    b.classList.toggle('active',
+      +b.dataset.w === view.window && +b.dataset.l === view.level);
+}
+
+function setWindowLevel(w, l) {
+  view.window = Math.max(1, Math.round(w));
+  view.level = Math.round(l);
+  $('win-slider').value = view.window; $('win-val').textContent = view.window;
+  $('lev-slider').value = view.level;  $('lev-val').textContent = view.level;
+  markActivePreset();
+  renderSlice();
+}
+
+function setSlice(z) {
+  const nz = app.ct.dims[2];
+  view.z = Math.max(0, Math.min(nz - 1, z));
+  $('slice-slider').value = view.z;
+  $('slice-val').textContent = `${view.z + 1}/${nz}`;
+  renderSlice();
+}
+
+function buildLegend() {
+  const legend = $('legend');
+  legend.innerHTML = '';
+  for (const s of app.structures) {
+    const row = document.createElement('label');
+    row.className = 'legend-row';
+    row.innerHTML = `<input type="checkbox" ${s.visible ? 'checked' : ''}>
+      <span class="swatch" style="background: rgb(${s.color})"></span>
+      <span>${s.name}</span><span class="count">${s.voxels.toLocaleString()} vx</span>`;
+    row.querySelector('input').addEventListener('change', e => {
+      s.visible = e.target.checked;
+      lutVis[s.labelValue] = s.visible ? 1 : 0;
+      renderSlice();
+    });
+    legend.appendChild(row);
+  }
+}
+
+function setAllVisible(on) {
+  for (const s of app.structures) { s.visible = on; lutVis[s.labelValue] = on ? 1 : 0; }
+  for (const cb of $('legend').querySelectorAll('input')) cb.checked = on;
+  renderSlice();
+}
+
+function initViewer() {
   const { ct, structures, huRange } = app;
   const [nx, ny, nz] = ct.dims;
   const [sx, sy, sz] = ct.spacing;
-  const voxelML = (sx * sy * sz) / 1000;
 
-  const rows = structures.map(s => `
-    <tr>
-      <td><span class="swatch" style="background: rgb(${s.color})"></span>${s.name}</td>
-      <td class="num">${s.voxels.toLocaleString()}</td>
-      <td class="num">${(s.voxels * voxelML).toFixed(0)} mL</td>
-    </tr>`).join('');
+  document.getElementById('loader').hidden = true;
+  document.getElementById('viewer').hidden = false;
 
-  document.getElementById('report').innerHTML = `
-    <div class="card">
-      <h2>CT volume</h2>
-      <div class="kv">
-        <span class="k">File</span><span>${ct.filename}</span>
-        <span class="k">Grid</span><span>${nx} × ${ny} × ${nz} voxels (${(nx*ny*nz).toLocaleString()} total)</span>
-        <span class="k">Voxel spacing</span><span>${sx.toFixed(3)} × ${sy.toFixed(3)} × ${sz.toFixed(3)} mm (anisotropic)</span>
-        <span class="k">Stored as</span><span>${ct.datatypeLabel}, rescaled to HU on the fly</span>
-        <span class="k">HU range</span><span>${huRange[0].toFixed(1)} to ${huRange[1].toFixed(1)}</span>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Segmented structures (${structures.length})</h2>
-      <table>
-        <tr><th>Structure</th><th>Voxels</th><th>Volume</th></tr>
-        ${rows}
-      </table>
-      <div class="note">Colors follow 3D Slicer’s GenericAnatomyColors table.
-      All masks share the CT’s grid and are merged into a single label volume
-      (1 byte/voxel). Slice rendering arrives in the next milestone.</div>
-    </div>`;
-  document.getElementById('report').hidden = false;
+  const canvas = $('slice-canvas');
+  canvas.width = nx; canvas.height = ny;
+  ctx = canvas.getContext('2d');
+  imageData = ctx.createImageData(nx, ny);
+  rebuildLuts();
+  buildLegend();
+
+  $('volume-meta').innerHTML =
+    `${ct.filename} · ${ct.datatypeLabel}<br>` +
+    `${nx} × ${ny} × ${nz} voxels<br>` +
+    `${sx.toFixed(3)} × ${sy.toFixed(3)} × ${sz.toFixed(3)} mm/voxel<br>` +
+    `HU ${huRange[0].toFixed(0)} to ${huRange[1].toFixed(0)} · ` +
+    `${structures.length} structures<br>` +
+    `Colors: Slicer GenericAnatomyColors`;
+
+  // slice controls
+  $('slice-slider').max = nz - 1;
+  $('slice-slider').addEventListener('input', e => setSlice(+e.target.value));
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    setSlice(view.z + Math.sign(e.deltaY));
+  }, { passive: false });
+
+  // window/level controls
+  $('win-slider').addEventListener('input', e => setWindowLevel(+e.target.value, view.level));
+  $('lev-slider').addEventListener('input', e => setWindowLevel(view.window, +e.target.value));
+  const presets = $('presets');
+  presets.innerHTML = '';
+  for (const pz of PRESETS) {
+    const b = document.createElement('button');
+    b.textContent = pz.name;
+    b.dataset.w = pz.window; b.dataset.l = pz.level;
+    b.addEventListener('click', () => setWindowLevel(pz.window, pz.level));
+    presets.appendChild(b);
+  }
+
+  // overlay controls
+  $('alpha-slider').addEventListener('input', e => {
+    view.alpha = +e.target.value / 100;
+    $('alpha-val').textContent = `${e.target.value}%`;
+    renderSlice();
+  });
+  $('all-on').addEventListener('click', () => setAllVisible(true));
+  $('all-off').addEventListener('click', () => setAllVisible(false));
+
+  // hover readout: canvas coords -> voxel coords (undo CSS scale + y flip)
+  const hover = $('hud-hover');
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const dx = Math.floor((e.clientX - rect.left) / rect.width * nx);
+    const row = Math.floor((e.clientY - rect.top) / rect.height * ny);
+    if (dx < 0 || dx >= nx || row < 0 || row >= ny) { hover.hidden = true; return; }
+    const x = nx - 1 - dx;   // undo the radiological x flip
+    const y = ny - 1 - row;  // undo the y flip
+    const hu = Math.round(huAt(x, y, view.z));
+    const label = app.labels[x + nx * (y + ny * view.z)];
+    hover.hidden = false;
+    hover.textContent = `(${x}, ${y}, ${view.z}) · ${hu} HU` +
+      (label ? ` · ${lutName[label]}` : '');
+  });
+  canvas.addEventListener('mouseleave', () => { hover.hidden = true; });
+
+  setWindowLevel(400, 40);   // abdomen preset
+  setSlice(Math.floor(nz / 2));
 }
 </script>
 </body>
