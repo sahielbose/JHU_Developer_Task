@@ -1,9 +1,7 @@
 # Browser CT Viewer
 
 A web-based CT scan viewer with per-voxel segmentation overlays, in the spirit of
-[3D Slicer](https://www.slicer.org/) but running entirely in the browser. No install,
-no server, no GPU — three plain files (HTML, CSS, ~800 lines of vanilla JavaScript)
-with zero dependencies and no build step.
+[3D Slicer](https://www.slicer.org/) but running entirely in the browser.
 
 Built as the demo for **BodyMaps Developer Project 1** (Johns Hopkins University /
 Johns Hopkins Medicine).
