@@ -169,8 +169,12 @@ async function ingest(entries, caseName) {
   for (const e of maskEntries) {
     const base = stripName(e.name);
     const mask = parseNifti(await maybeGunzip(e.buffer), e.name);
-    if (mask.dims.join() !== ct.dims.join())
-      throw new Error(`${e.name}: grid ${mask.dims.join('×')} does not match CT ${ct.dims.join('×')}`);
+    if (mask.dims.join() !== ct.dims.join()) {
+      // A mask on a different grid can't be overlaid voxel-for-voxel —
+      // skip it rather than abort the whole case.
+      log(`<span class="err">✗</span> ${e.name} skipped: grid ${mask.dims.join('×')} does not match CT ${ct.dims.join('×')}`);
+      continue;
+    }
 
     const known = ORGANS.find(o => o.key === base);
     const labelValue = structures.length + 1;
