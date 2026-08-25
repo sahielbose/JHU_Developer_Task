@@ -14,6 +14,8 @@ Johns Hopkins Medicine).
 
 - [x] NIfTI-1 (`.nii.gz`) parsing in pure JavaScript (native `DecompressionStream`, no libraries)
 - [x] Drag-and-drop loading (files or a whole folder) with byte-level progress — works even from `file://`
+- [x] CT auto-detection: finds the CT by the `ct.nii.gz` naming convention, or by content
+      (wide-range grayscale vs. small-integer masks) when files are named arbitrarily
 - [x] Window/level controls with radiology presets (Abdomen / Bone / Lung)
 - [x] 9 organ segmentation overlays with Slicer's GenericAnatomyColors, per-organ toggles + opacity
 - [x] Slicer-style 2×2 layout: axial / sagittal / coronal / 3D, Slicer's viewport color codes

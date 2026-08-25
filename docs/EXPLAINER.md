@@ -376,7 +376,11 @@ all three planes at once.
 
 **11. What happens with a different AbdomenAtlas case?**
 It loads — same format, and nothing is hardcoded to this case: grids and spacing
-come from the header, unrecognized mask filenames get fallback colors. The honest
+come from the header, unrecognized mask filenames get fallback colors. Filenames
+aren't load-bearing either: the CT is found by the `ct.nii.gz` convention when
+present, and otherwise identified by content — a CT is a wide-range grayscale
+volume, while a mask holds a handful of small integer values, which a ~20k-voxel
+sample distinguishes reliably. The honest
 limits: NIfTI-1 little-endian only, and the qform/sform affine is ignored — I
 assume axis-aligned RAS voxels, which holds for this dataset. Handling arbitrary
 orientations via the sform matrix is the first thing I'd add for general data.

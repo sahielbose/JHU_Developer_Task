@@ -102,11 +102,27 @@ function stripName(filename) {
   return filename.toLowerCase().replace(/\.nii(\.gz)?$/, '').replace(/^.*\//, '');
 }
 
+// A segmentation mask holds a handful of small non-negative integer values;
+// a CT is a wide-range grayscale volume. Sampling ~20k voxels tells them apart.
+function looksLikeLabels(vol) {
+  const d = vol.data, n = d.length, stride = Math.max(1, Math.floor(n / 20000));
+  const seen = new Set();
+  for (let i = 0; i < n; i += stride) {
+    const v = d[i];
+    if (v < 0 || v > 32 || v !== (v | 0)) return false;
+    seen.add(v);
+    if (seen.size > 8) return false;
+  }
+  return true;
+}
+
 async function ingest(entries, caseName) {
   // entries: [{name, buffer}]
   const t0 = performance.now();
   log(`Parsing ${entries.length} file(s)…`);
 
+  // The CT is found by the AbdomenAtlas naming convention (ct.nii.gz) when
+  // present, and by content otherwise — so arbitrarily named cases still load.
   let ctEntry = null;
   const maskEntries = [];
   for (const e of entries) {
@@ -114,9 +130,30 @@ async function ingest(entries, caseName) {
     if (base === 'ct' || base.startsWith('ct_') || base.endsWith('_ct')) ctEntry = e;
     else maskEntries.push(e);
   }
-  if (!ctEntry) throw new Error('No CT found — expected a file named ct.nii.gz');
 
-  const ct = parseNifti(await maybeGunzip(ctEntry.buffer), ctEntry.name);
+  let ct = null;
+  if (ctEntry) {
+    ct = parseNifti(await maybeGunzip(ctEntry.buffer), ctEntry.name);
+  } else {
+    const candidates = [];
+    for (const e of entries) {
+      const vol = parseNifti(await maybeGunzip(e.buffer), e.name);
+      if (looksLikeLabels(vol)) continue;
+      candidates.push(e);
+      ct = candidates.length === 1 ? vol : null;
+    }
+    if (candidates.length > 1)
+      throw new Error(`Multiple CT-like volumes (${candidates.map(c => c.name).join(', ')}) — rename the CT to ct.nii.gz to disambiguate`);
+    if (candidates.length === 0)
+      throw new Error(entries.length === 1
+        ? `${entries[0].name} looks like a segmentation mask (only a few distinct values) — drop it together with its CT`
+        : 'No CT volume found — every file looks like a segmentation mask');
+    ctEntry = candidates[0];
+    maskEntries.length = 0;
+    for (const e of entries) if (e !== ctEntry) maskEntries.push(e);
+    log(`CT identified by content: ${ctEntry.name}`);
+  }
+
   const [nx, ny, nz] = ct.dims;
   const nvox = nx * ny * nz;
   log(`<span class="ok">✓</span> CT ${nx}×${ny}×${nz} ${ct.datatypeLabel}, ` +
