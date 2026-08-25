@@ -42,6 +42,7 @@
             <span class="plane-tag"></span><span class="t">Axial</span>
             <input type="range" id="slider-axial" min="0" value="0" step="1">
             <span class="idx" id="idx-axial"></span>
+            <span class="zoom-btns"><button class="zoom-out" data-view="axial" title="Zoom out">&minus;</button><button class="zoom-in" data-view="axial" title="Zoom in">+</button></span>
           </div>
           <div class="cell-body">
             <canvas class="slice" id="canvas-axial"></canvas>
@@ -53,6 +54,7 @@
           <div class="cell-head">
             <span class="plane-tag"></span><span class="t">3D</span>
             <span class="idx" id="idx-3d"></span>
+            <span class="zoom-btns"><button class="zoom-out" data-view="3d" title="Zoom out">&minus;</button><button class="zoom-in" data-view="3d" title="Zoom in">+</button></span>
           </div>
           <div class="cell-body">
             <canvas id="canvas-3d"></canvas>
@@ -63,6 +65,7 @@
             <span class="plane-tag"></span><span class="t">Sagittal</span>
             <input type="range" id="slider-sagittal" min="0" value="0" step="1">
             <span class="idx" id="idx-sagittal"></span>
+            <span class="zoom-btns"><button class="zoom-out" data-view="sagittal" title="Zoom out">&minus;</button><button class="zoom-in" data-view="sagittal" title="Zoom in">+</button></span>
           </div>
           <div class="cell-body">
             <canvas class="slice" id="canvas-sagittal"></canvas>
@@ -75,6 +78,7 @@
             <span class="plane-tag"></span><span class="t">Coronal</span>
             <input type="range" id="slider-coronal" min="0" value="0" step="1">
             <span class="idx" id="idx-coronal"></span>
+            <span class="zoom-btns"><button class="zoom-out" data-view="coronal" title="Zoom out">&minus;</button><button class="zoom-in" data-view="coronal" title="Zoom in">+</button></span>
           </div>
           <div class="cell-body">
             <canvas class="slice" id="canvas-coronal"></canvas>
@@ -120,7 +124,8 @@
         <label class="inline"><input type="checkbox" id="crosshair-toggle" checked>
           Linked crosshairs</label>
         <div class="help">Click or drag in a view to move the crosshair.
-        Scroll to change slice. Drag the 3D view to rotate, scroll to zoom.</div>
+        Scroll to change slice. Drag the 3D view to rotate, scroll to zoom.
+        + / &minus; zoom any view about the crosshair.</div>
       </div>
     </aside>
   </section>

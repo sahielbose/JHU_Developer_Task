@@ -404,6 +404,7 @@ const view = {
   window: 400, level: 40,
   alpha: 0.45,
   crosshair: true,
+  zoom: { axial: 1, sagittal: 1, coronal: 1 },
 };
 
 const $ = id => document.getElementById(id);
@@ -558,7 +559,27 @@ function setCursor(x, y, z) {
   view.cursor.x = Math.max(0, Math.min(nx - 1, x));
   view.cursor.y = Math.max(0, Math.min(ny - 1, y));
   view.cursor.z = Math.max(0, Math.min(nz - 1, z));
+  for (const k of ['axial', 'sagittal', 'coronal']) applyZoom(k);
   renderAll();
+}
+
+// CSS-transform zoom about the crosshair, so zooming follows the cursor and
+// clicking near an edge pans the magnified region there. Hit-testing needs no
+// changes: voxelFromEvent maps through getBoundingClientRect proportions,
+// which already reflect the transform.
+function applyZoom(key) {
+  const v = views[key];
+  if (!v) return;
+  const z = view.zoom[key];
+  if (z <= 1) {
+    v.canvas.style.transform = '';
+    v.canvas.style.transformOrigin = '';
+    return;
+  }
+  const { dx, row } = crosshairDisp(key);
+  v.canvas.style.transformOrigin =
+    `${(dx + 0.5) / v.w * 100}% ${(row + 0.5) / v.h * 100}%`;
+  v.canvas.style.transform = `scale(${z})`;
 }
 
 function setWindowLevel(w, l) {
@@ -828,6 +849,20 @@ function bindUI() {
   $('all-on').addEventListener('click', () => setAllVisible(true));
   $('all-off').addEventListener('click', () => setAllVisible(false));
 
+  for (const btn of document.querySelectorAll('.zoom-btns button')) {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.view;
+      const f = btn.classList.contains('zoom-in') ? 1.25 : 1 / 1.25;
+      if (key === '3d') {
+        r3.zoom = Math.max(0.4, Math.min(4, r3.zoom * f));
+        render3D();
+      } else {
+        view.zoom[key] = Math.max(1, Math.min(6, view.zoom[key] * f));
+        applyZoom(key);
+      }
+    });
+  }
+
   $('change-case').addEventListener('click', showLoader);
 }
 
@@ -850,8 +885,12 @@ function initViewer() {
     { key: 'sagittal', w: ny, h: nz, mmW: ny * sy, mmH: nz * sz },
     { key: 'coronal',  w: nx, h: nz, mmW: nx * sx, mmH: nz * sz },
   ];
+  view.zoom = { axial: 1, sagittal: 1, coronal: 1 };
+  r3.zoom = 1;
   for (const d of defs) {
     const canvas = $(`canvas-${d.key}`);
+    canvas.style.transform = '';
+    canvas.style.transformOrigin = '';
     canvas.width = d.w; canvas.height = d.h;
     canvas.style.aspectRatio = `${d.mmW} / ${d.mmH}`;
     const ctx = canvas.getContext('2d');

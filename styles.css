@@ -126,6 +126,15 @@
     margin-left: auto;
     white-space: nowrap;
   }
+  .cell-head .zoom-btns { display: flex; gap: 4px; flex-shrink: 0; }
+  .cell-head .zoom-btns button {
+    width: 20px; height: 20px; padding: 0;
+    font: 600 13px/1 var(--mono);
+    background: var(--paper); color: var(--ink);
+    border: 1px solid var(--ink);
+    cursor: pointer;
+  }
+  .cell-head .zoom-btns button:hover { background: var(--ink); color: var(--paper); }
   .cell-body {
     position: relative;
     height: 34vh;
@@ -133,6 +142,7 @@
     align-items: center;
     justify-content: center;
     padding: 10px;
+    overflow: hidden;
   }
   canvas.slice { max-width: 100%; max-height: 100%; width: auto; height: auto; cursor: crosshair; }
   #canvas-3d { max-width: 100%; max-height: 100%; cursor: grab; }
