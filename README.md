@@ -13,7 +13,8 @@ Johns Hopkins Medicine).
 ## Features
 
 - [x] NIfTI-1 (`.nii.gz`) parsing in pure JavaScript (native `DecompressionStream`, no libraries)
-- [x] Drag-and-drop loading (files or a whole folder) with byte-level progress — works even from `file://`
+- [x] Drag-and-drop loading (files or a whole folder, dropped anywhere on the page),
+      plus separate file and folder pickers — with byte-level progress, works even from `file://`
 - [x] CT auto-detection: finds the CT by the `ct.nii.gz` naming convention, or by content
       (wide-range grayscale vs. small-integer masks) when files are named arbitrarily
 - [x] Window/level controls with radiology presets (Abdomen / Bone / Lung)

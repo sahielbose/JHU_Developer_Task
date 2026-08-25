@@ -23,10 +23,12 @@
       <div class="big">Drop a CT scan and its segmentation masks</div>
       <div class="sub">NIfTI (<code>.nii</code> / <code>.nii.gz</code>) &middot; files or a folder</div>
       <div class="buttons">
+        <button id="pick-folder">Choose a folder&hellip;</button>
         <button id="pick">Choose files&hellip;</button>
         <button id="sample" class="primary" hidden>Load sample case</button>
       </div>
       <input type="file" id="file-input" multiple accept=".nii,.gz" hidden>
+      <input type="file" id="folder-input" webkitdirectory hidden>
     </div>
     <div class="progress" id="progress" hidden><div id="progress-fill"></div></div>
     <pre id="log"></pre>

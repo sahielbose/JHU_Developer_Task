@@ -186,6 +186,8 @@ async function ingest(entries, caseName) {
     structures.push({ name, color, labelValue, voxels, visible: true });
     log(`<span class="ok">✓</span> ${name}: ${voxels.toLocaleString()} voxels`);
   }
+  if (!structures.length)
+    log('No segmentation masks in this load — slice views only.');
 
   // Raw min/max in one pass — used for the study panel and windowing sanity.
   let min = Infinity, max = -Infinity;
@@ -294,19 +296,46 @@ async function loadFiles(files, caseName) {
   } catch (err) { logError(err); }
 }
 
+function showLoader() {
+  $('viewer').hidden = true;
+  $('case-chip').hidden = true;
+  $('change-case').hidden = true;
+  $('loader').hidden = false;
+  logEl.innerHTML = '';
+  progressHide();
+}
+
+// Drops are accepted anywhere on the page, not just the dropzone — dropping a
+// new case while the viewer is open replaces the current one.
 const dropzone = document.getElementById('dropzone');
-dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
-dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
-dropzone.addEventListener('drop', async e => {
+document.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) dropzone.classList.remove('drag'); });
+document.addEventListener('drop', async e => {
   e.preventDefault();
   dropzone.classList.remove('drag');
   const { files, dirName } = await filesFromDataTransfer(e.dataTransfer);
+  if ($('loader').hidden) showLoader();
   loadFiles(files, dirName);
 });
 
 const fileInput = document.getElementById('file-input');
 document.getElementById('pick').addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', () => loadFiles([...fileInput.files]));
+fileInput.addEventListener('change', () => {
+  loadFiles([...fileInput.files]);
+  fileInput.value = '';
+});
+
+// The file picker cannot select a directory, so a whole case (ct.nii.gz +
+// segmentations/) needs its own folder picker.
+const folderInput = document.getElementById('folder-input');
+document.getElementById('pick-folder').addEventListener('click', () => folderInput.click());
+folderInput.addEventListener('change', () => {
+  const files = [...folderInput.files];
+  const dirName = files[0] && files[0].webkitRelativePath
+    ? files[0].webkitRelativePath.split('/')[0] : null;
+  loadFiles(files, dirName);
+  folderInput.value = '';
+});
 
 // "Load sample" only works when served over HTTP (fetch is blocked on file://).
 const SAMPLE_PATHS = ['data/ct.nii.gz',
@@ -643,6 +672,18 @@ function render3D() {
     zbuf = new Float32Array(W * H);
     img3d = canvas.getContext('2d').createImageData(W, H);
   }
+  if (c.count === 0) {
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#888';
+    ctx.font = '13px ui-monospace, Menlo, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('No segmentation masks loaded', W / 2, H / 2 - 8);
+    ctx.fillText('3D renders organ surfaces from masks', W / 2, H / 2 + 14);
+    return;
+  }
+
   const px = img3d.data;
   px.fill(0);
   for (let i = 3; i < px.length; i += 4) px[i] = 255;  // opaque black
@@ -783,14 +824,7 @@ function bindUI() {
   $('all-on').addEventListener('click', () => setAllVisible(true));
   $('all-off').addEventListener('click', () => setAllVisible(false));
 
-  $('change-case').addEventListener('click', () => {
-    $('viewer').hidden = true;
-    $('case-chip').hidden = true;
-    $('change-case').hidden = true;
-    $('loader').hidden = false;
-    logEl.innerHTML = '';
-    progressHide();
-  });
+  $('change-case').addEventListener('click', showLoader);
 }
 
 function initViewer() {
